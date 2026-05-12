@@ -1,0 +1,8 @@
+/* App-wide base styles can go here. Tailwind v4 handles most styling via globals.css */
+@layer base {
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
