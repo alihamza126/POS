@@ -1,5 +1,6 @@
 import { db } from '../../../database/sqlite/db';
 import { auditLogs } from '../../../database/schema/audit';
+import { AuditRepository, AuditFilters } from '../repositories/audit-repository';
 
 export interface AuditLogEntry {
   userId: string;
@@ -27,11 +28,19 @@ export class AuditService {
         oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
         newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
         metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
+        createdAt: new Date(),
       });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to create audit log:', error);
-      // In a real app, we might want to log this to a file or emergency store
     }
+  }
+
+  static async getLogs(filters: AuditFilters) {
+    return AuditRepository.getLogs(filters);
+  }
+
+  static async getActions() {
+    return AuditRepository.getActions();
   }
 }

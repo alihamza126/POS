@@ -13,6 +13,7 @@ export const products = sqliteTable('products', {
   sellingPrice: real('selling_price').notNull().default(0),
   reorderLevel: integer('reorder_level').notNull().default(10),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  branchId: text('branch_id').notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });

@@ -6,6 +6,10 @@ import MainLayout from '../layouts/MainLayout';
 import LoginPage from '../features/auth/pages/LoginPage';
 import ProtectedRoute from '../routes/ProtectedRoute';
 
+import ProductListPage from '../features/products/pages/ProductListPage';
+import ProductDetailsPage from '../features/products/pages/ProductDetailsPage';
+import AuditLogPage from '../features/audit/pages/AuditLogPage';
+
 function Dashboard() {
   return (
     <div className="space-y-6">
@@ -14,7 +18,7 @@ function Dashboard() {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="bg-surface p-6 rounded-2xl shadow-soft border border-border h-32 flex items-center justify-center"
+            className="bg-surface p-6 rounded-2xl shadow-soft border border-navy/20 h-32 flex items-center justify-center"
           >
             <p className="text-text-secondary font-medium">Metric Card {i}</p>
           </div>
@@ -23,6 +27,8 @@ function Dashboard() {
     </div>
   );
 }
+
+import { Toaster } from '../components/ui/toaster';
 
 export default function App() {
   return (
@@ -44,14 +50,12 @@ export default function App() {
                       </div>
                     }
                   />
+                  <Route path="/inventory" element={<ProductListPage />} />
                   <Route
-                    path="/inventory"
-                    element={
-                      <div className="text-2xl font-bold">
-                        Inventory Module (Coming Soon)
-                      </div>
-                    }
+                    path="/inventory/:id"
+                    element={<ProductDetailsPage />}
                   />
+                  <Route path="/audit" element={<AuditLogPage />} />
                   <Route
                     path="/customers"
                     element={
@@ -74,6 +78,7 @@ export default function App() {
           }
         />
       </Routes>
+      <Toaster />
     </Router>
   );
 }

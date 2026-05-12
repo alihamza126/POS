@@ -7,7 +7,7 @@ export default function Topbar() {
   const isOnline = true; // Placeholder for online status check
 
   return (
-    <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-8 shadow-sm">
+    <header className="h-16 bg-surface border-b border-navy/20 flex items-center justify-between px-8 shadow-sm">
       <div className="flex items-center gap-4 flex-1 max-w-xl">
         <div className="relative w-full">
           <Search
@@ -17,7 +17,7 @@ export default function Topbar() {
           <input
             type="text"
             placeholder="Search products, invoices (Alt+S)"
-            className="w-full bg-background border border-border rounded-md pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full bg-background border border-navy/20 rounded-md pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function Topbar() {
           <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full border-2 border-surface" />
         </button>
 
-        <div className="flex items-center gap-3 pl-4 border-l border-border">
+        <div className="flex items-center gap-3 pl-4 border-l border-navy/20">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-text-primary">
               {user?.username || 'User'}

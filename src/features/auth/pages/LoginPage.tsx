@@ -54,13 +54,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-surface p-10 rounded-2xl shadow-soft border border-border">
+      <div className="w-full max-w-md bg-surface p-10 rounded-2xl shadow-soft border border-navy/20">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
             <ShoppingCart className="text-primary-foreground" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-secondary">Welcome Back</h1>
-          <p className="text-text-secondary mt-1">Sign in to your POS terminal</p>
+          <p className="text-text-secondary mt-1">
+            Sign in to your POS terminal
+          </p>
         </div>
 
         {loginError && (
@@ -85,7 +87,7 @@ export default function LoginPage() {
                   id="username"
                   // eslint-disable-next-line react/jsx-props-no-spreading
                   {...register('username')}
-                  className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-background border border-navy/20 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="Enter username"
                 />
               </div>
@@ -113,7 +115,7 @@ export default function LoginPage() {
                   // eslint-disable-next-line react/jsx-props-no-spreading
                   {...register('password')}
                   type="password"
-                  className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-background border border-navy/20 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   placeholder="Enter password"
                 />
               </div>
@@ -125,16 +127,12 @@ export default function LoginPage() {
             )}
           </div>
 
-          <Button
-            type="submit"
-            className="w-full py-4 text-base font-bold"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Authenticating...' : 'Sign In'}
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-border text-center">
+        <div className="mt-8 pt-6 border-t border-navy/20 text-center">
           <p className="text-xs text-text-secondary">
             System strictly for authorized personnel only. All access is logged.
           </p>

@@ -6,7 +6,9 @@ import {
   Users,
   Settings,
   LogOut,
+  History,
 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../shared/utils';
 import { useAuthStore } from '../stores/auth-store';
 
@@ -15,14 +17,16 @@ const navItems = [
   { icon: ShoppingCart, label: 'POS', path: '/pos' },
   { icon: Package, label: 'Inventory', path: '/inventory' },
   { icon: Users, label: 'Customers', path: '/customers' },
+  { icon: History, label: 'Audit Log', path: '/audit' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
 export default function Sidebar() {
   const { logout } = useAuthStore();
+  const location = useLocation();
 
   return (
-    <aside className="w-64 bg-secondary flex flex-col h-full border-r border-border shadow-soft">
+    <aside className="w-64 bg-secondary flex flex-col h-full border-r border-navy/20 shadow-soft">
       <div className="p-6 flex items-center gap-3">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
           <ShoppingCart className="text-primary-foreground" size={24} />
@@ -34,18 +38,17 @@ export default function Sidebar() {
 
       <nav className="flex-1 px-4 py-4 space-y-2">
         {navItems.map((item) => (
-          <a
+          <Link
             key={item.label}
-            href={item.path}
+            to={item.path}
             className={cn(
               'flex items-center gap-3 px-4 py-3 rounded-md text-secondary-foreground/70 hover:bg-primary/10 hover:text-primary transition-all',
-              item.path === window.location.pathname &&
-                'bg-primary/10 text-primary',
+              location.pathname === item.path && 'bg-primary/10 text-primary',
             )}
           >
             <item.icon size={20} />
             <span className="font-medium">{item.label}</span>
-          </a>
+          </Link>
         ))}
       </nav>
 

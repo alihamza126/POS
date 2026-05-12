@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `branch_id` text NOT NULL;
