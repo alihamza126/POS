@@ -7,6 +7,8 @@ import { ShoppingCart, User, Lock } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useAuthStore } from '../../../stores/auth-store';
 
+import bgLogin from '../../../../assets/bg-login.png';
+
 const loginSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(4, 'Password must be at least 4 characters'),
@@ -53,8 +55,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-surface p-10 rounded-2xl shadow-soft border border-navy/20">
+    <div 
+      className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: `url(${bgLogin})` }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-tr from-primary-dark/80 via-primary-dark/40 to-transparent backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary-dark/20 to-primary-dark/60" />
+      
+      <div className="relative w-full max-w-md bg-surface/90 backdrop-blur-xl p-10 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(2,2,92,0.4)] border border-white/20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
             <ShoppingCart className="text-primary-foreground" size={32} />
@@ -87,7 +96,7 @@ export default function LoginPage() {
                   id="username"
                   // eslint-disable-next-line react/jsx-props-no-spreading
                   {...register('username')}
-                  className="w-full bg-background border border-navy/20 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-navy/5 border border-navy/10 rounded-xl pl-10 pr-4 py-3.5 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-navy/30"
                   placeholder="Enter username"
                 />
               </div>
@@ -115,7 +124,7 @@ export default function LoginPage() {
                   // eslint-disable-next-line react/jsx-props-no-spreading
                   {...register('password')}
                   type="password"
-                  className="w-full bg-background border border-navy/20 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full bg-navy/5 border border-navy/10 rounded-xl pl-10 pr-4 py-3.5 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-navy/30"
                   placeholder="Enter password"
                 />
               </div>
@@ -127,7 +136,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full py-6 text-base font-bold shadow-xl shadow-primary/20" disabled={isSubmitting}>
             {isSubmitting ? 'Authenticating...' : 'Sign In'}
           </Button>
         </form>

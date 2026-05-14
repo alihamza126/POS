@@ -7,6 +7,8 @@ import { PaymentService } from '../../features/customers/services/payment-servic
 import { LedgerService } from '../../features/customers/services/ledger-service';
 import { SalesService } from '../../features/sales/services/sales-service';
 import { CategoryService } from '../../features/categories/services/category-service';
+import { syncService } from '../../sync/services/sync-service';
+import { syncWorker } from '../../main/sync-worker';
 
 export function setupIpcHandlers() {
   // Auth Handlers
@@ -59,7 +61,19 @@ export function setupIpcHandlers() {
 
   // Sync Handlers
   ipcMain.handle('sync:status', async () => {
-    return { lastSync: new Date(), pending: 0 };
+    return syncService.getSyncStatus();
+  });
+
+  ipcMain.handle('sync:history', async () => {
+    return syncService.getSyncHistory();
+  });
+
+  ipcMain.handle('sync:trigger', async () => {
+    return syncService.processQueue();
+  });
+
+  ipcMain.handle('sync:set-auto', async (_event, enabled: boolean) => {
+    return syncWorker.setAutoSync(enabled);
   });
 
   // Audit Handlers

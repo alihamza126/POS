@@ -96,23 +96,23 @@ const styles = StyleSheet.create({
     borderStyle: 'solid',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    padding: 5,
+    padding: 3,
   },
   tableColItem: {
     width: '40%',
     borderStyle: 'solid',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    padding: 5,
+    padding: 3,
   },
   tableCellHeader: {
-    margin: 2,
-    fontSize: 10,
+    margin: 1,
+    fontSize: 8,
     fontWeight: 'bold',
     color: '#02025C',
   },
-  tableCell: { margin: 2, fontSize: 8 },
-  tableCellRight: { margin: 2, fontSize: 8, textAlign: 'right' },
+  tableCell: { margin: 1, fontSize: 7 },
+  tableCellRight: { margin: 1, fontSize: 7, textAlign: 'right' },
 
   totalsContainer: { marginTop: 20, alignItems: 'flex-end' },
   totalRow: {
@@ -193,8 +193,18 @@ function InvoiceDocument({
           </View>
           <View style={styles.headerCenter}>
             <Text style={styles.companyName}>
-              {(companyDetails?.name || 'FIVE STAR INDUSTRY').toUpperCase()}
+              {(companyDetails?.name || 'POS SYSTEM').toUpperCase()}
             </Text>
+            {companyDetails?.address && (
+              <Text style={{ fontSize: 8, color: '#666', marginTop: 2 }}>
+                {companyDetails.address}
+              </Text>
+            )}
+            {companyDetails?.phone && (
+              <Text style={{ fontSize: 8, color: '#666' }}>
+                Ph: {companyDetails.phone}
+              </Text>
+            )}
             <Text style={styles.documentTitle}>Sales Invoice</Text>
             <Text style={styles.dateContext}>As of {asOfDate}</Text>
           </View>

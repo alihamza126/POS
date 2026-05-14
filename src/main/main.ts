@@ -1,4 +1,5 @@
 /* eslint global-require: off, no-console: off, promise/always-return: off */
+require('dotenv').config();
 
 /**
  * This module executes inside of electron's main process. You can start
@@ -16,6 +17,7 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { runMigrations } from '../database/sqlite/migrator';
 import { setupIpcHandlers } from '../electron/ipc/handlers';
+import { syncWorker } from './sync-worker';
 
 class AppUpdater {
   constructor() {
@@ -136,6 +138,7 @@ app
     try {
       await runMigrations();
       setupIpcHandlers();
+      syncWorker.start();
       createWindow();
       app.on('activate', () => {
         // On macOS it's common to re-create a window in the app when the

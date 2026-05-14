@@ -2,6 +2,9 @@ import { eq, and, like, or, sql, desc, count, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../../database/sqlite/db';
 import { customers } from '../../../database/schema/customers';
+import { invoices } from '../../../database/schema/sales';
+import { customerPayments } from '../../../database/schema/customers';
+import { syncService } from '../../../sync/services/sync-service';
 
 export interface CustomerFilter {
   query?: string;
@@ -19,7 +22,12 @@ export class CustomerRepository {
       ...data,
       id,
     };
-    return db.insert(customers).values(newCustomer).returning().get();
+    const result = await db.insert(customers).values(newCustomer).returning().get();
+    
+    // Add to sync queue
+    syncService.addToQueue('customers', id, 'create', result).catch(console.error);
+    
+    return result;
   }
 
   static async update(id: string, data: any) {
@@ -29,23 +37,22 @@ export class CustomerRepository {
       updatedAt: _updatedAt,
       ...updateData
     } = data;
-    // eslint-disable-next-line no-console
-    console.log('Excluding fields from update:', {
-      _id,
-      _createdAt,
-      _updatedAt,
-    });
-
-    return db
+    
+    const result = await db
       .update(customers)
       .set({ ...updateData, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(customers.id, id))
       .returning()
       .get();
+
+    // Add to sync queue
+    syncService.addToQueue('customers', id, 'update', result).catch(console.error);
+
+    return result;
   }
 
   static async softDelete(id: string) {
-    return db
+    const result = await db
       .update(customers)
       .set({
         deletedAt: sql`CURRENT_TIMESTAMP`,
@@ -54,6 +61,11 @@ export class CustomerRepository {
       .where(eq(customers.id, id))
       .returning()
       .get();
+
+    // Add to sync queue
+    syncService.addToQueue('customers', id, 'delete', result).catch(console.error);
+
+    return result;
   }
 
   static async findById(id: string) {
@@ -95,9 +107,45 @@ export class CustomerRepository {
           : (customers as any)[sortBy];
     }
 
+    // Subquery for invoice balance
+    const invoiceBalanceSubquery = db
+      .select({
+        customerId: invoices.customerId,
+        balance: sql<number>`SUM(${invoices.payableAmount} - ${invoices.paidAmount})`.as('invoice_balance'),
+      })
+      .from(invoices)
+      .where(eq(invoices.status, 'active'))
+      .groupBy(invoices.customerId)
+      .as('inv_bal');
+
+    // Subquery for payment total
+    const paymentTotalSubquery = db
+      .select({
+        customerId: customerPayments.customerId,
+        total: sql<number>`SUM(${customerPayments.amount})`.as('payment_total'),
+      })
+      .from(customerPayments)
+      .groupBy(customerPayments.customerId)
+      .as('pay_tot');
+
+    // Join with customers to get items with balance
     const items = db
-      .select()
+      .select({
+        id: customers.id,
+        name: customers.name,
+        phone: customers.phone,
+        email: customers.email,
+        address: customers.address,
+        companyName: customers.companyName,
+        ntn: customers.ntn,
+        branchId: customers.branchId,
+        createdAt: customers.createdAt,
+        updatedAt: customers.updatedAt,
+        balance: sql<number>`COALESCE(${invoiceBalanceSubquery.balance}, 0) - COALESCE(${paymentTotalSubquery.total}, 0)`,
+      })
       .from(customers)
+      .leftJoin(invoiceBalanceSubquery, eq(customers.id, invoiceBalanceSubquery.customerId))
+      .leftJoin(paymentTotalSubquery, eq(customers.id, paymentTotalSubquery.customerId))
       .where(conditions)
       .limit(limit)
       .offset(offset)

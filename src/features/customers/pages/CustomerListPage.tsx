@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   ExternalLink,
+  Banknote,
 } from 'lucide-react';
 import {
   useReactTable,
@@ -32,6 +33,7 @@ import { Card } from '../../../components/ui/card';
 import { useCustomers } from '../hooks/use-customers';
 import { useAuthStore } from '../../../stores/auth-store';
 import AddCustomerDialog from '../components/AddCustomerDialog';
+import ReceivePaymentDialog from '../components/ReceivePaymentDialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../hooks/use-toast';
 import { cn } from '../../../shared/utils';
@@ -50,6 +52,7 @@ export default function CustomerListPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   const { toast } = useToast();
@@ -136,6 +139,27 @@ export default function CustomerListPage() {
           </span>
         ),
       }),
+      columnHelper.accessor('balance', {
+        header: 'Current Balance',
+        cell: (info) => {
+          const balance = info.getValue() || 0;
+          return (
+            <div className="flex flex-col items-end">
+              <span
+                className={cn(
+                  'text-sm font-black',
+                  balance > 0 ? 'text-red-500' : balance < 0 ? 'text-emerald-500' : 'text-text-secondary',
+                )}
+              >
+                Rs. {Math.abs(balance).toLocaleString()}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-tighter opacity-40">
+                {balance > 0 ? 'Due' : balance < 0 ? 'Advance' : 'Balanced'}
+              </span>
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor((row) => row, {
         id: 'actions',
         header: 'Actions',
@@ -146,6 +170,18 @@ export default function CustomerListPage() {
               className="flex justify-end gap-1"
               onClick={(e) => e.stopPropagation()}
             >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-emerald-500 hover:text-white hover:bg-emerald-500 rounded-xl transition-all"
+                title="Receive Payment"
+                onClick={() => {
+                  setSelectedCustomer(customer);
+                  setIsPaymentDialogOpen(true);
+                }}
+              >
+                <Banknote size={18} />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -387,6 +423,19 @@ export default function CustomerListPage() {
         onOpenChange={setIsAddDialogOpen}
         onSuccess={refresh}
         customer={selectedCustomer}
+      />
+
+      <ReceivePaymentDialog
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        customerId={selectedCustomer?.id}
+        onSuccess={() => {
+          refresh();
+          toast({
+            title: 'Payment Received',
+            description: 'Customer balance has been updated.',
+          });
+        }}
       />
     </div>
   );

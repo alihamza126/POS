@@ -2,6 +2,7 @@ import { eq, and, like, or, sql, desc, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../../database/sqlite/db';
 import { products, stockMovements } from '../../../database/schema/inventory';
+import { syncService } from '../../../sync/services/sync-service';
 
 export interface ProductFilter {
   query?: string;
@@ -24,11 +25,15 @@ export class ProductRepository {
       id,
       active: true,
     };
-    return db.insert(products).values(newProduct).returning().get();
+    const result = await db.insert(products).values(newProduct).returning().get();
+    
+    // Add to sync queue
+    syncService.addToQueue('products', id, 'create', result).catch(console.error);
+    
+    return result;
   }
 
   static async update(id: string, data: any) {
-    // Sanitize data: remove id and other read-only fields if they exist
     const {
       id: _id,
       createdAt: _createdAt,
@@ -37,21 +42,31 @@ export class ProductRepository {
       ...updateData
     } = data;
 
-    return db
+    const result = await db
       .update(products)
       .set({ ...updateData, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(products.id, id))
       .returning()
       .get();
+
+    // Add to sync queue
+    syncService.addToQueue('products', id, 'update', result).catch(console.error);
+
+    return result;
   }
 
   static async softDelete(id: string) {
-    return db
+    const result = await db
       .update(products)
       .set({ active: false, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(products.id, id))
       .returning()
       .get();
+
+    // Add to sync queue
+    syncService.addToQueue('products', id, 'delete', result).catch(console.error);
+
+    return result;
   }
 
   static async findById(id: string) {
@@ -185,10 +200,15 @@ export class ProductRepository {
     referenceId?: string;
   }) {
     const id = uuidv4();
-    return db
+    const result = await db
       .insert(stockMovements)
       .values({ ...movement, id })
       .returning()
       .get();
+
+    // Add to sync queue
+    syncService.addToQueue('stock_movements', id, 'create', result).catch(console.error);
+
+    return result;
   }
 }

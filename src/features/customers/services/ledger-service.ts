@@ -1,22 +1,11 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../../../database/sqlite/db';
 import { invoices } from '../../../database/schema/sales';
 import { customerPayments } from '../../../database/schema/customers';
 
-export interface LedgerEntry {
-  id: string;
-  type: 'invoice' | 'payment';
-  date: string;
-  number: string;
-  memo: string;
-  debit: number;
-  credit: number;
-  balance: number;
-}
-
 export class LedgerService {
-  static async getCustomerLedger(customerId: string): Promise<LedgerEntry[]> {
-    // 1. Fetch all invoices for this customer
+  static async getCustomerLedger(customerId: string) {
+    // 1. Fetch all active invoices for the customer
     const customerInvoices = db
       .select()
       .from(invoices)
@@ -25,54 +14,63 @@ export class LedgerService {
       )
       .all();
 
-    // 2. Fetch all payments for this customer
-    const payments = db
+    // 2. Fetch all payments for the customer
+    const customerPaymentsList = db
       .select()
       .from(customerPayments)
       .where(eq(customerPayments.customerId, customerId))
       .all();
 
     // 3. Combine and sort by date
-    const entries: Omit<LedgerEntry, 'balance'>[] = [
-      ...customerInvoices.map((inv) => ({
-        id: inv.id,
-        type: 'invoice' as const,
-        date: inv.createdAt as string,
+    // Each invoice creates a DEBIT (payableAmount) and potentially a CREDIT (paidAmount)
+    const ledgerEntries: any[] = [];
+
+    customerInvoices.forEach((inv) => {
+      // The total amount of the invoice is what the customer "owes" (Debit)
+      ledgerEntries.push({
+        id: `inv-${inv.id}`,
+        type: 'invoice',
+        date: inv.createdAt,
         number: inv.invoiceNumber,
-        memo: 'Sales Invoice',
-        debit: inv.payableAmount || inv.totalAmount,
+        memo: `Invoice - ${inv.paymentType.toUpperCase()}`,
+        debit: inv.payableAmount,
         credit: 0,
-      })),
-      ...customerInvoices
-        .filter((inv) => inv.paidAmount > 0)
-        .map((inv) => ({
-          id: `${inv.id}_payment`,
-          type: 'payment' as const,
-          date: inv.createdAt as string,
+      });
+
+      // If they paid something at the time of sale, it's a Credit
+      if (inv.paidAmount > 0) {
+        ledgerEntries.push({
+          id: `pay-inv-${inv.id}`,
+          type: 'payment',
+          date: inv.createdAt, // Same date as invoice
           number: inv.invoiceNumber,
-          memo: `Payment at Sale (${inv.paymentType || 'Cash'})`,
+          memo: `Payment at Sale (${inv.paymentType.toUpperCase()})`,
           debit: 0,
           credit: inv.paidAmount,
-        })),
-      ...payments.map((p) => ({
-        id: p.id,
-        type: 'payment' as const,
-        date: p.createdAt as string,
-        number: p.referenceNo || p.id.slice(0, 8),
-        memo: p.note || `Payment via ${p.paymentMethod}`,
-        debit: 0,
-        credit: p.amount,
-      })),
-    ];
+        });
+      }
+    });
 
-    // Sort by date ascending to calculate running balance correctly
-    entries.sort(
+    customerPaymentsList.forEach((pay) => {
+      ledgerEntries.push({
+        id: `pay-${pay.id}`,
+        type: 'payment',
+        date: pay.createdAt,
+        number: pay.referenceNo || 'PAY-' + pay.id.substring(0, 8),
+        memo: `Payment - ${pay.paymentMethod.toUpperCase()}${pay.note ? ' (' + pay.note + ')' : ''}`,
+        debit: 0,
+        credit: pay.amount,
+      });
+    });
+
+    // Sort by date ascending
+    ledgerEntries.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
     // 4. Calculate running balance
     let runningBalance = 0;
-    const ledgerWithBalance: LedgerEntry[] = entries.map((entry) => {
+    const history = ledgerEntries.map((entry) => {
       runningBalance += entry.debit - entry.credit;
       return {
         ...entry,
@@ -80,31 +78,29 @@ export class LedgerService {
       };
     });
 
-    // Return descending for UI display (newest first)
-    return ledgerWithBalance.reverse();
+    return history.reverse(); // Newest first for UI
   }
 
   static async getCustomerSummary(customerId: string) {
-    const ledger = await this.getCustomerLedger(customerId);
+    const history = await this.getCustomerLedger(customerId);
 
-    const totalInvoices = ledger
-      .filter((e) => e.type === 'invoice')
-      .reduce((sum, e) => sum + e.debit, 0);
-    const totalPayments = ledger
-      .filter((e) => e.type === 'payment')
-      .reduce((sum, e) => sum + e.credit, 0);
-    const currentBalance = totalInvoices - totalPayments;
-
-    const lastTransaction = ledger.length > 0 ? ledger[0].date : null;
-
-    return {
-      totalInvoices,
-      totalPayments,
-      currentBalance,
-      lastTransaction,
-      transactionCount: ledger.length,
+    const summary = {
+      currentBalance: history.length > 0 ? history[0].balance : 0,
+      totalInvoices: 0,
+      totalPayments: 0,
+      transactionCount: history.length,
+      lastTransaction: history.length > 0 ? history[0].date : null,
     };
+
+    // Calculate totals from the flat list (history is reversed, so we just iterate)
+    history.forEach((entry) => {
+      if (entry.type === 'invoice') {
+        summary.totalInvoices += entry.debit;
+      } else {
+        summary.totalPayments += entry.credit;
+      }
+    });
+
+    return summary;
   }
 }
-
-export default LedgerService;

@@ -14,6 +14,7 @@ import CustomerDetailsPage from '../features/customers/pages/CustomerDetailsPage
 import POSPage from '../features/sales/pages/POSPage';
 import SalesHistoryPage from '../features/sales/pages/SalesHistoryPage';
 import CategoryListPage from '../features/categories/pages/CategoryListPage';
+import SettingsPage from '../features/settings/pages/SettingsPage';
 
 import { Toaster } from '../components/ui/toaster';
 
@@ -71,11 +72,7 @@ export default function App() {
                   />
                   <Route
                     path="/settings"
-                    element={
-                      <div className="text-2xl font-bold">
-                        Settings Module (Coming Soon)
-                      </div>
-                    }
+                    element={<SettingsPage />}
                   />
                 </Routes>
               </MainLayout>

@@ -294,10 +294,23 @@ export default function ProductListPage() {
             Manage your products and track stock levels
           </p>
         </div>
-        <Button onClick={handleAddNew} className="gap-2">
-          <Plus size={20} />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => {
+              setSelectedProductForStock(undefined);
+              setIsAdjustStockDialogOpen(true);
+            }} 
+            variant="outline" 
+            className="gap-2 font-bold text-amber-600 border-amber-600/20 hover:bg-amber-500/10"
+          >
+            <Scale size={20} />
+            Adjust Stock
+          </Button>
+          <Button onClick={handleAddNew} className="gap-2">
+            <Plus size={20} />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       <Card className="p-6 border-none shadow-soft bg-surface border border-navy/5">

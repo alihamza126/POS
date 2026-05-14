@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../../database/sqlite/db';
 import { invoices, invoiceItems } from '../../../database/schema/sales';
 import { stockMovements, products } from '../../../database/schema/inventory';
+import { syncService } from '../../../sync/services/sync-service';
 
 export interface SalesFilter {
   query?: string;
@@ -130,21 +131,31 @@ export class SalesRepository {
           .get();
 
         // 3. Create stock movement (negative quantity for sale)
+        const movementId = uuidv4();
+        const movementData = {
+          id: movementId,
+          productId: item.productId,
+          type: 'sale' as const,
+          quantity: -item.quantity,
+          referenceId: invoiceId,
+          reason: `Sale: ${invoiceNumber}`,
+          userId: input.userId,
+          branchId: input.branchId,
+        };
+
         tx.insert(stockMovements)
-          .values({
-            id: uuidv4(),
-            productId: item.productId,
-            type: 'sale',
-            quantity: -item.quantity,
-            referenceId: invoiceId,
-            reason: `Sale: ${invoiceNumber}`,
-            userId: input.userId,
-            branchId: input.branchId,
-          })
+          .values(movementData)
           .run();
+
+        // Queue item and movement for sync
+        syncService.addToQueue('invoice_items', itemId, 'create', createdItem).catch(console.error);
+        syncService.addToQueue('stock_movements', movementId, 'create', movementData).catch(console.error);
 
         return { ...createdItem, productName: item.productName };
       });
+
+      // Queue invoice for sync
+      syncService.addToQueue('invoices', invoiceId, 'create', createdInvoice).catch(console.error);
 
       return { invoice: createdInvoice, items: createdItems };
     });
@@ -270,19 +281,28 @@ export class SalesRepository {
 
       // 3. Create reverse stock movements (positive to restore)
       items.forEach((item) => {
+        const movementId = uuidv4();
+        const movementData = {
+          id: movementId,
+          productId: item.productId,
+          type: 'return' as const,
+          quantity: item.quantity, // Positive to restore
+          referenceId: id,
+          reason: `Invoice cancelled: ${updated.invoiceNumber}`,
+          userId,
+          branchId,
+        };
+
         tx.insert(stockMovements)
-          .values({
-            id: uuidv4(),
-            productId: item.productId,
-            type: 'return',
-            quantity: item.quantity, // Positive to restore
-            referenceId: id,
-            reason: `Invoice cancelled: ${updated.invoiceNumber}`,
-            userId,
-            branchId,
-          })
+          .values(movementData)
           .run();
+
+        // Queue movement for sync
+        syncService.addToQueue('stock_movements', movementId, 'create', movementData).catch(console.error);
       });
+
+      // Queue invoice update for sync
+      syncService.addToQueue('invoices', id, 'update', updated).catch(console.error);
 
       return updated;
     });

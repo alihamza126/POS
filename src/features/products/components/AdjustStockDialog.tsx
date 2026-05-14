@@ -23,6 +23,8 @@ import { Label } from '../../../components/ui/label';
 import { Button } from '../../../components/ui/button';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuthStore } from '../../../stores/auth-store';
+import SearchableSelect from '../../../components/ui/searchable-select';
+import { useProducts } from '../hooks/use-products';
 
 const schema = z.object({
   quantity: z.coerce.number().min(1, 'Quantity must be greater than 0'),
@@ -34,7 +36,7 @@ const schema = z.object({
 type AdjustStockFormData = z.infer<typeof schema>;
 
 interface AdjustStockDialogProps {
-  product: any;
+  product?: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -49,6 +51,19 @@ export default function AdjustStockDialog({
   const { toast } = useToast();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  const { products } = useProducts({ limit: 1000 });
+
+  React.useEffect(() => {
+    if (open) {
+      if (product) {
+        setSelectedProductId(product.id);
+      } else {
+        setSelectedProductId(null);
+      }
+    }
+  }, [product, open]);
 
   const {
     register,
@@ -71,13 +86,23 @@ export default function AdjustStockDialog({
   const isAddition = watch('isAddition');
 
   const onSubmit = async (data: AdjustStockFormData) => {
+    if (!selectedProductId) {
+      toast({
+        title: 'Product Required',
+        description: 'Please select a product to adjust.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       const actualQuantity = data.isAddition ? data.quantity : -data.quantity;
+      const targetProduct = product || products.find((p) => p.id === selectedProductId);
 
       // @ts-ignore
       await window.api.products.adjustStock({
-        productId: product.id,
+        productId: selectedProductId,
         quantity: actualQuantity,
         type: data.type,
         reason: data.reason,
@@ -87,7 +112,7 @@ export default function AdjustStockDialog({
 
       toast({
         title: 'Stock Adjusted',
-        description: `Successfully adjusted stock for ${product.name}.`,
+        description: `Successfully adjusted stock for ${targetProduct?.name || 'product'}.`,
         variant: 'success',
       });
 
@@ -106,8 +131,6 @@ export default function AdjustStockDialog({
     }
   };
 
-  if (!product) return null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-none shadow-xl">
@@ -119,18 +142,41 @@ export default function AdjustStockDialog({
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center border border-white/30">
               <Package size={24} className="text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <DialogTitle className="text-2xl font-black tracking-tight">
                 Adjust Stock
               </DialogTitle>
-              <DialogDescription className="text-white/80 font-medium">
-                {product.name}
-              </DialogDescription>
+              {product ? (
+                <DialogDescription className="text-white/80 font-medium">
+                  {product.name}
+                </DialogDescription>
+              ) : (
+                <DialogDescription className="text-white/80 font-medium">
+                  Select a product to continue
+                </DialogDescription>
+              )}
             </div>
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
+          {!product && (
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-navy">Select Product</Label>
+              <SearchableSelect
+                options={products.map((p) => ({
+                  id: p.id,
+                  label: p.name,
+                  subtitle: `Stock: ${p.currentStock} | Price: Rs. ${p.price}`,
+                }))}
+                value={selectedProductId}
+                onSelect={(opt) => setSelectedProductId(opt.id)}
+                onClear={() => setSelectedProductId(null)}
+                placeholder="Search products..."
+                className="w-full"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4 bg-[#F1EFF9] p-2 rounded-xl">
             <button
               type="button"

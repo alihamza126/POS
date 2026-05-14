@@ -2,6 +2,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../../database/sqlite/db';
 import { customerPayments } from '../../../database/schema/customers';
+import { syncService } from '../../../sync/services/sync-service';
 
 export default class PaymentRepository {
   static async create(data: any) {
@@ -10,7 +11,12 @@ export default class PaymentRepository {
       ...data,
       id,
     };
-    return db.insert(customerPayments).values(newPayment).returning().get();
+    const result = await db.insert(customerPayments).values(newPayment).returning().get();
+    
+    // Add to sync queue
+    syncService.addToQueue('customer_payments', id, 'create', result).catch(console.error);
+    
+    return result;
   }
 
   static async findAllByCustomerId(customerId: string) {

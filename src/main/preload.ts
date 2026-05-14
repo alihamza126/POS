@@ -15,7 +15,9 @@ const dbHandler = {
 
 const syncHandler = {
   getStatus: () => ipcRenderer.invoke('sync:status'),
+  getHistory: () => ipcRenderer.invoke('sync:history'),
   triggerSync: () => ipcRenderer.invoke('sync:trigger'),
+  setAuto: (enabled: boolean) => ipcRenderer.invoke('sync:set-auto', enabled),
 };
 
 const productHandler = {
