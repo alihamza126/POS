@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
+  Scale,
 } from 'lucide-react';
 import {
   useReactTable,
@@ -33,6 +34,7 @@ import { useProducts } from '../hooks/use-products';
 import { useAuthStore } from '../../../stores/auth-store';
 import AddProductDialog from '../components/AddProductDialog';
 import ProductFiltersDialog from '../components/ProductFiltersDialog';
+import AdjustStockDialog from '../components/AdjustStockDialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../hooks/use-toast';
 import { cn } from '../../../shared/utils';
@@ -45,9 +47,28 @@ export default function ProductListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [isAdjustStockDialogOpen, setIsAdjustStockDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedProductForStock, setSelectedProductForStock] =
+    useState<any>(null);
+  const [categoryList, setCategoryList] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  // Load categories for filter tabs
+  useEffect(() => {
+    const loadCats = async () => {
+      try {
+        // @ts-ignore
+        const cats = await window.api.categories.list('main-branch');
+        setCategoryList(cats || []);
+      } catch {
+        // silently fail
+      }
+    };
+    loadCats();
+  }, []);
 
   const handleEdit = (product: any) => {
     setSelectedProduct(product);
@@ -62,6 +83,11 @@ export default function ProductListPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     updateFilters({ query: searchQuery });
+  };
+
+  const handleCategoryFilter = (catId: string | null) => {
+    setSelectedCategory(catId);
+    updateFilters({ categoryId: catId });
   };
 
   const handleDelete = async (id: string) => {
@@ -100,33 +126,39 @@ export default function ProductListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Product',
+        header: 'Product & SKU',
         cell: (info) => (
-          <span className="font-bold text-navy">{info.getValue()}</span>
+          <div>
+            <span className="font-bold text-navy">{info.getValue()}</span>
+            <p className="text-xs text-text-secondary mt-0.5">
+              SKU: {info.row.original.sku}
+            </p>
+          </div>
         ),
       }),
-      columnHelper.accessor('sku', {
-        header: 'SKU',
-        cell: (info) => (
-          <span className="text-text-secondary">{info.getValue()}</span>
-        ),
+      columnHelper.accessor('categoryId', {
+        header: 'Category',
+        cell: (info) => {
+          const catId = info.getValue();
+          const cat = categoryList.find((c: any) => c.id === catId);
+          return (
+            <span className="text-text-secondary text-sm">
+              {cat?.name || 'Uncategorized'}
+            </span>
+          );
+        },
       }),
-      columnHelper.accessor('barcode', {
-        header: 'Barcode',
+
+      columnHelper.accessor('purchasePrice', {
+        header: 'Buying Price',
         cell: (info) => (
-          <span className="text-text-secondary font-mono text-xs">
-            {info.getValue() || '-'}
+          <span className="text-text-secondary">
+            ${info.getValue().toFixed(2)}
           </span>
         ),
       }),
-      columnHelper.accessor('unit', {
-        header: 'Unit',
-        cell: (info) => (
-          <span className="text-text-secondary">{info.getValue()}</span>
-        ),
-      }),
       columnHelper.accessor('sellingPrice', {
-        header: 'Price',
+        header: 'Selling Price',
         cell: (info) => (
           <span className="font-bold text-navy">
             ${info.getValue().toFixed(2)}
@@ -187,6 +219,17 @@ export default function ProductListPage() {
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8 text-text-secondary hover:text-amber-500 hover:bg-amber-500/10"
+                onClick={() => {
+                  setSelectedProductForStock(product);
+                  setIsAdjustStockDialogOpen(true);
+                }}
+              >
+                <Scale size={16} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-8 w-8 text-text-secondary hover:text-destructive hover:bg-destructive/10"
                 onClick={() => handleDelete(product.id)}
               >
@@ -197,7 +240,7 @@ export default function ProductListPage() {
         },
       }),
     ],
-    [],
+    [categoryList],
   );
 
   const table = useReactTable({
@@ -282,6 +325,39 @@ export default function ProductListPage() {
             </Button>
           </div>
         </div>
+
+        {/* Category Filter Tabs */}
+        {categoryList.length > 0 && (
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleCategoryFilter(null)}
+              className={cn(
+                'px-4 py-2 rounded-xl text-sm font-bold transition-all',
+                selectedCategory === null
+                  ? 'bg-primary text-white shadow-md'
+                  : 'bg-navy/5 text-navy/60 hover:bg-navy/10',
+              )}
+            >
+              All Items
+            </button>
+            {categoryList.map((cat: any) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryFilter(cat.id)}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-sm font-bold transition-all',
+                  selectedCategory === cat.id
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-navy/5 text-navy/60 hover:bg-navy/10',
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="rounded-xl border border-navy/20 overflow-hidden bg-surface shadow-sm">
           <Table>
@@ -427,9 +503,22 @@ export default function ProductListPage() {
 
       <AddProductDialog
         open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) setSelectedProduct(null);
+        }}
         onSuccess={refresh}
         product={selectedProduct}
+      />
+
+      <AdjustStockDialog
+        product={selectedProductForStock}
+        open={isAdjustStockDialogOpen}
+        onOpenChange={(open) => {
+          setIsAdjustStockDialogOpen(open);
+          if (!open) setSelectedProductForStock(null);
+        }}
+        onSuccess={refresh}
       />
 
       <ProductFiltersDialog

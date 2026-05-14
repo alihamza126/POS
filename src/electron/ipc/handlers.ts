@@ -2,6 +2,11 @@ import { ipcMain } from 'electron';
 import { AuthService } from '../../features/auth/services/auth-service';
 import { AuditService } from '../../features/audit/services/audit-service';
 import { ProductService } from '../../features/products/services/product-service';
+import { CustomerService } from '../../features/customers/services/customer-service';
+import { PaymentService } from '../../features/customers/services/payment-service';
+import { LedgerService } from '../../features/customers/services/ledger-service';
+import { SalesService } from '../../features/sales/services/sales-service';
+import { CategoryService } from '../../features/categories/services/category-service';
 
 export function setupIpcHandlers() {
   // Auth Handlers
@@ -66,6 +71,94 @@ export function setupIpcHandlers() {
   });
   ipcMain.handle('audit:get-actions', async () => {
     return AuditService.getActions();
+  });
+
+  // Customer Handlers
+  ipcMain.handle('customers:list', async (_event, filters) => {
+    return CustomerService.getCustomers(filters);
+  });
+
+  ipcMain.handle('customers:get', async (_event, id) => {
+    return CustomerService.getCustomer(id);
+  });
+
+  ipcMain.handle('customers:create', async (_event, { data, userId }) => {
+    return CustomerService.createCustomer(data, userId);
+  });
+
+  ipcMain.handle('customers:update', async (_event, { id, data, userId }) => {
+    return CustomerService.updateCustomer(id, data, userId);
+  });
+
+  ipcMain.handle('customers:delete', async (_event, { id, userId }) => {
+    return CustomerService.deleteCustomer(id, userId);
+  });
+
+  ipcMain.handle('customers:get-ledger', async (_event, customerId) => {
+    return LedgerService.getCustomerLedger(customerId);
+  });
+
+  ipcMain.handle('customers:get-summary', async (_event, customerId) => {
+    return LedgerService.getCustomerSummary(customerId);
+  });
+
+  ipcMain.handle(
+    'customers:record-payment',
+    async (_event, { data, userId }) => {
+      return PaymentService.recordPayment(data, userId);
+    },
+  );
+
+  ipcMain.handle('customers:get-payments', async (_event, customerId) => {
+    return PaymentService.getCustomerPayments(customerId);
+  });
+
+  // Sales Handlers
+  ipcMain.handle('sales:create', async (_event, input) => {
+    return SalesService.createSale(input);
+  });
+
+  ipcMain.handle('sales:get', async (_event, id) => {
+    return SalesService.getSale(id);
+  });
+
+  ipcMain.handle('sales:list', async (_event, filters) => {
+    return SalesService.getSales(filters);
+  });
+
+  ipcMain.handle(
+    'sales:cancel',
+    async (_event, { id, userId, branchId, deviceId }) => {
+      return SalesService.cancelSale(id, userId, branchId, deviceId);
+    },
+  );
+
+  ipcMain.handle('sales:daily-summary', async (_event, branchId) => {
+    return SalesService.getDailySummary(branchId);
+  });
+
+  ipcMain.handle(
+    'sales:next-invoice-number',
+    async (_event, { branchId, deviceId }) => {
+      return SalesService.getNextInvoiceNumber(branchId, deviceId);
+    },
+  );
+
+  // Category Handlers
+  ipcMain.handle('categories:list', async (_event, branchId) => {
+    return CategoryService.getCategories(branchId);
+  });
+
+  ipcMain.handle('categories:create', async (_event, { data, userId }) => {
+    return CategoryService.createCategory(data, userId);
+  });
+
+  ipcMain.handle('categories:update', async (_event, { id, data, userId }) => {
+    return CategoryService.updateCategory(id, data, userId);
+  });
+
+  ipcMain.handle('categories:delete', async (_event, { id, userId }) => {
+    return CategoryService.deleteCategory(id, userId);
   });
 }
 

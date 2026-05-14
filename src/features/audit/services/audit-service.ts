@@ -1,6 +1,9 @@
 import { db } from '../../../database/sqlite/db';
 import { auditLogs } from '../../../database/schema/audit';
-import { AuditRepository, AuditFilters } from '../repositories/audit-repository';
+import {
+  AuditRepository,
+  AuditFilters,
+} from '../repositories/audit-repository';
 
 export interface AuditLogEntry {
   userId: string;

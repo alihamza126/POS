@@ -115,10 +115,14 @@ export default function AuditLogPage() {
               variant="outline"
               className={cn(
                 'font-bold px-3 py-1 rounded-full uppercase text-[10px] tracking-wider',
-                action.includes('CREATE') && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-                action.includes('UPDATE') && 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-                action.includes('DELETE') && 'bg-red-500/10 text-red-600 border-red-500/20',
-                action.includes('AUTH') && 'bg-primary/10 text-primary border-primary/20',
+                action.includes('CREATE') &&
+                  'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                action.includes('UPDATE') &&
+                  'bg-amber-500/10 text-amber-600 border-amber-500/20',
+                action.includes('DELETE') &&
+                  'bg-red-500/10 text-red-600 border-red-500/20',
+                action.includes('AUTH') &&
+                  'bg-primary/10 text-primary border-primary/20',
               )}
             >
               {action.replace(/_/g, ' ')}
@@ -152,16 +156,21 @@ export default function AuditLogPage() {
         header: 'Details',
         cell: (info) => {
           const metadata = info.getValue();
-          if (!metadata) return <span className="text-text-secondary italic">-</span>;
+          if (!metadata)
+            return <span className="text-text-secondary italic">-</span>;
           try {
             const data = JSON.parse(metadata);
             return (
               <span className="text-xs text-text-secondary line-clamp-1 max-w-[200px]">
-                {Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                {Object.entries(data)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(', ')}
               </span>
             );
           } catch {
-            return <span className="text-xs text-text-secondary">{metadata}</span>;
+            return (
+              <span className="text-xs text-text-secondary">{metadata}</span>
+            );
           }
         },
       }),
@@ -200,7 +209,9 @@ export default function AuditLogPage() {
             </label>
             <Select
               value={filters.action}
-              onValueChange={(val) => setFilters({ ...filters, action: val, offset: 0 })}
+              onValueChange={(val) =>
+                setFilters({ ...filters, action: val, offset: 0 })
+              }
             >
               <SelectTrigger className="h-11">
                 <SelectValue placeholder="All Actions" />
@@ -224,7 +235,9 @@ export default function AuditLogPage() {
               type="date"
               className="h-11"
               value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value, offset: 0 })}
+              onChange={(e) =>
+                setFilters({ ...filters, startDate: e.target.value, offset: 0 })
+              }
             />
           </div>
 
@@ -236,21 +249,25 @@ export default function AuditLogPage() {
               type="date"
               className="h-11"
               value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value, offset: 0 })}
+              onChange={(e) =>
+                setFilters({ ...filters, endDate: e.target.value, offset: 0 })
+              }
             />
           </div>
 
           <div className="flex items-end">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full h-11 font-bold text-navy"
-              onClick={() => setFilters({
-                action: 'all',
-                startDate: '',
-                endDate: '',
-                limit: 20,
-                offset: 0,
-              })}
+              onClick={() =>
+                setFilters({
+                  action: 'all',
+                  startDate: '',
+                  endDate: '',
+                  limit: 20,
+                  offset: 0,
+                })
+              }
             >
               Reset Filters
             </Button>
@@ -329,8 +346,8 @@ export default function AuditLogPage() {
         {/* Pagination */}
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-text-secondary font-medium">
-            Showing <span className="text-navy font-bold">{logs.length}</span> of{' '}
-            <span className="text-navy font-bold">{total}</span> events
+            Showing <span className="text-navy font-bold">{logs.length}</span>{' '}
+            of <span className="text-navy font-bold">{total}</span> events
           </p>
           <div className="flex gap-2">
             <Button
@@ -338,7 +355,9 @@ export default function AuditLogPage() {
               size="sm"
               disabled={filters.offset === 0}
               className="font-bold text-navy h-9 px-4"
-              onClick={() => handlePageChange(Math.max(0, filters.offset - filters.limit))}
+              onClick={() =>
+                handlePageChange(Math.max(0, filters.offset - filters.limit))
+              }
             >
               <ChevronLeft size={16} className="mr-1" /> Previous
             </Button>

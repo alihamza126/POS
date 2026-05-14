@@ -13,6 +13,7 @@ import {
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
+import SearchableSelect from '../../../components/ui/searchable-select';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuthStore } from '../../../stores/auth-store';
 import {
@@ -39,6 +40,7 @@ const productSchema = z.object({
     .number()
     .min(0, 'Reorder level must be positive')
     .default(10),
+  initialStock: z.coerce.number().min(0).optional().default(0),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -57,10 +59,13 @@ export default function AddProductDialog({
   product,
 }: AddProductDialogProps) {
   const { user } = useAuthStore();
+  const [categoryList, setCategoryList] = React.useState<any[]>([]);
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -69,8 +74,36 @@ export default function AddProductDialog({
       purchasePrice: 0,
       sellingPrice: 0,
       reorderLevel: 10,
+      initialStock: 0,
     },
   });
+
+  // Load categories
+  React.useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        // @ts-ignore
+        const cats = await window.api.categories.list('main-branch');
+        setCategoryList(cats || []);
+      } catch {
+        // Categories are optional — fail silently
+      }
+    };
+    if (open) loadCategories();
+  }, [open]);
+
+  // Map categories to SearchableSelect options
+  const categoryOptions = React.useMemo(
+    () =>
+      categoryList.map((cat: any) => ({
+        id: cat.id,
+        label: cat.name,
+        subtitle: cat.description || undefined,
+      })),
+    [categoryList],
+  );
+
+  const watchedCategoryId = watch('categoryId');
 
   React.useEffect(() => {
     if (product) {
@@ -85,6 +118,7 @@ export default function AddProductDialog({
         purchasePrice: 0,
         sellingPrice: 0,
         reorderLevel: 10,
+        initialStock: 0,
       });
     }
   }, [product, reset]);
@@ -134,7 +168,7 @@ export default function AddProductDialog({
       reset();
     } catch (error: any) {
       console.error('Submission failed:', error);
-      
+
       let errorMessage = 'Failed to save product. Please try again.';
       let errorTitle = 'System Error';
 
@@ -272,6 +306,26 @@ export default function AddProductDialog({
                   {...register('barcode')}
                 />
               </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label
+                  htmlFor="categoryId"
+                  className="text-sm font-bold text-navy flex items-center gap-2"
+                >
+                  <List size={14} className="text-primary" />
+                  Category
+                </Label>
+                <SearchableSelect
+                  options={categoryOptions}
+                  value={watchedCategoryId || null}
+                  onSelect={(opt) => setValue('categoryId', opt.id)}
+                  onClear={() => setValue('categoryId', '')}
+                  placeholder="Select a category (optional)"
+                  searchPlaceholder="Search categories..."
+                  icon={<List size={14} className="text-primary" />}
+                  emptyMessage="No categories found"
+                />
+              </div>
             </div>
           </div>
 
@@ -384,22 +438,24 @@ export default function AddProductDialog({
               </h3>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="initialStock"
-                  className="text-sm font-bold text-navy"
-                >
-                  Initial Stock
-                </Label>
-                <Input
-                  id="initialStock"
-                  type="number"
-                  placeholder="0"
-                  // eslint-disable-next-line react/jsx-props-no-spreading
-                  {...register('initialStock', { valueAsNumber: true })}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
+              {!product && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="initialStock"
+                    className="text-sm font-bold text-navy"
+                  >
+                    Initial Stock
+                  </Label>
+                  <Input
+                    id="initialStock"
+                    type="number"
+                    placeholder="0"
+                    // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...register('initialStock', { valueAsNumber: true })}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label
                   htmlFor="reorderLevel"

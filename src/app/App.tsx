@@ -9,6 +9,13 @@ import ProtectedRoute from '../routes/ProtectedRoute';
 import ProductListPage from '../features/products/pages/ProductListPage';
 import ProductDetailsPage from '../features/products/pages/ProductDetailsPage';
 import AuditLogPage from '../features/audit/pages/AuditLogPage';
+import CustomerListPage from '../features/customers/pages/CustomerListPage';
+import CustomerDetailsPage from '../features/customers/pages/CustomerDetailsPage';
+import POSPage from '../features/sales/pages/POSPage';
+import SalesHistoryPage from '../features/sales/pages/SalesHistoryPage';
+import CategoryListPage from '../features/categories/pages/CategoryListPage';
+
+import { Toaster } from '../components/ui/toaster';
 
 function Dashboard() {
   return (
@@ -28,13 +35,20 @@ function Dashboard() {
   );
 }
 
-import { Toaster } from '../components/ui/toaster';
-
 export default function App() {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* POS uses its own full-screen layout — no sidebar */}
+        <Route
+          path="/pos"
+          element={
+            <ProtectedRoute>
+              <POSPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="*"
           element={
@@ -42,27 +56,18 @@ export default function App() {
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route
-                    path="/pos"
-                    element={
-                      <div className="text-2xl font-bold">
-                        POS Module (Coming Soon)
-                      </div>
-                    }
-                  />
                   <Route path="/inventory" element={<ProductListPage />} />
                   <Route
                     path="/inventory/:id"
                     element={<ProductDetailsPage />}
                   />
+                  <Route path="/sales" element={<SalesHistoryPage />} />
+                  <Route path="/categories" element={<CategoryListPage />} />
                   <Route path="/audit" element={<AuditLogPage />} />
+                  <Route path="/customers" element={<CustomerListPage />} />
                   <Route
-                    path="/customers"
-                    element={
-                      <div className="text-2xl font-bold">
-                        Customers Module (Coming Soon)
-                      </div>
-                    }
+                    path="/customers/:id"
+                    element={<CustomerDetailsPage />}
                   />
                   <Route
                     path="/settings"

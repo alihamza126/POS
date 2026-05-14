@@ -7,6 +7,8 @@ import {
   Settings,
   LogOut,
   History,
+  FileText,
+  FolderOpen,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../shared/utils';
@@ -15,7 +17,9 @@ import { useAuthStore } from '../stores/auth-store';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: ShoppingCart, label: 'POS', path: '/pos' },
+  { icon: FileText, label: 'Sales History', path: '/sales' },
   { icon: Package, label: 'Inventory', path: '/inventory' },
+  { icon: FolderOpen, label: 'Categories', path: '/categories' },
   { icon: Users, label: 'Customers', path: '/customers' },
   { icon: History, label: 'Audit Log', path: '/audit' },
   { icon: Settings, label: 'Settings', path: '/settings' },

@@ -14,14 +14,14 @@ export interface AuditFilters {
 
 export class AuditRepository {
   static async getLogs(filters: AuditFilters = {}) {
-    const { 
-      action, 
-      entity, 
-      userId, 
-      startDate, 
-      endDate, 
-      limit = 50, 
-      offset = 0 
+    const {
+      action,
+      entity,
+      userId,
+      startDate,
+      endDate,
+      limit = 50,
+      offset = 0,
     } = filters;
 
     const conditions = [];

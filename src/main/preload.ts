@@ -38,12 +38,56 @@ const auditHandler = {
   getActions: () => ipcRenderer.invoke('audit:get-actions'),
 };
 
+const customerHandler = {
+  list: (filters: any) => ipcRenderer.invoke('customers:list', filters),
+  get: (id: string) => ipcRenderer.invoke('customers:get', id),
+  create: (data: any, userId: string) =>
+    ipcRenderer.invoke('customers:create', { data, userId }),
+  update: (id: string, data: any, userId: string) =>
+    ipcRenderer.invoke('customers:update', { id, data, userId }),
+  delete: (id: string, userId: string) =>
+    ipcRenderer.invoke('customers:delete', { id, userId }),
+  getLedger: (customerId: string) =>
+    ipcRenderer.invoke('customers:get-ledger', customerId),
+  getSummary: (customerId: string) =>
+    ipcRenderer.invoke('customers:get-summary', customerId),
+  recordPayment: (data: any, userId: string) =>
+    ipcRenderer.invoke('customers:record-payment', { data, userId }),
+  getPayments: (customerId: string) =>
+    ipcRenderer.invoke('customers:get-payments', customerId),
+};
+
+const salesHandler = {
+  create: (input: any) => ipcRenderer.invoke('sales:create', input),
+  get: (id: string) => ipcRenderer.invoke('sales:get', id),
+  list: (filters: any) => ipcRenderer.invoke('sales:list', filters),
+  cancel: (id: string, userId: string, branchId: string, deviceId: string) =>
+    ipcRenderer.invoke('sales:cancel', { id, userId, branchId, deviceId }),
+  getDailySummary: (branchId: string) =>
+    ipcRenderer.invoke('sales:daily-summary', branchId),
+  getNextInvoiceNumber: (branchId: string, deviceId: string) =>
+    ipcRenderer.invoke('sales:next-invoice-number', { branchId, deviceId }),
+};
+
+const categoryHandler = {
+  list: (branchId: string) => ipcRenderer.invoke('categories:list', branchId),
+  create: (data: any, userId: string) =>
+    ipcRenderer.invoke('categories:create', { data, userId }),
+  update: (id: string, data: any, userId: string) =>
+    ipcRenderer.invoke('categories:update', { id, data, userId }),
+  delete: (id: string, userId: string) =>
+    ipcRenderer.invoke('categories:delete', { id, userId }),
+};
+
 contextBridge.exposeInMainWorld('api', {
   auth: authHandler,
   db: dbHandler,
   sync: syncHandler,
   products: productHandler,
   audit: auditHandler,
+  customers: customerHandler,
+  sales: salesHandler,
+  categories: categoryHandler,
 });
 
 export type ApiHandler = {
@@ -52,4 +96,7 @@ export type ApiHandler = {
   sync: typeof syncHandler;
   products: typeof productHandler;
   audit: typeof auditHandler;
+  customers: typeof customerHandler;
+  sales: typeof salesHandler;
+  categories: typeof categoryHandler;
 };

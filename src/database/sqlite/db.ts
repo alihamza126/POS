@@ -7,6 +7,8 @@ import * as inventorySchema from '../schema/inventory';
 import * as salesSchema from '../schema/sales';
 import * as auditSchema from '../schema/audit';
 import * as syncSchema from '../schema/sync';
+import * as customersSchema from '../schema/customers';
+import * as categoriesSchema from '../schema/categories';
 
 const schema = {
   ...authSchema,
@@ -14,6 +16,8 @@ const schema = {
   ...salesSchema,
   ...auditSchema,
   ...syncSchema,
+  ...customersSchema,
+  ...categoriesSchema,
 };
 
 // Ensure this runs only in the main process
