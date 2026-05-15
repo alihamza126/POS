@@ -10,6 +10,7 @@ import { usePOSStore } from '../../../stores/pos-store';
 import { useAuthStore } from '../../../stores/auth-store';
 import { generateInvoicePDF } from '../../../shared/utils/pdf-generator';
 import { useSettingsStore } from '../../../stores/settings-store';
+import { audioService } from '../../../shared/utils/audio';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -29,7 +30,6 @@ export default function PaymentDialog({
     customerId,
     customerName,
     paymentMethod,
-    invoiceDiscount,
     taxRate,
     amountTendered,
     setAmountTendered,
@@ -37,7 +37,9 @@ export default function PaymentDialog({
     getChangeAmount,
     getSubtotal,
     getTotalDiscount,
+    getItemDiscountTotal,
     getTaxAmount,
+    bankName,
     clearCart,
   } = usePOSStore();
 
@@ -65,15 +67,17 @@ export default function PaymentDialog({
       const result = await window.api.sales.create({
         items,
         customerId: customerId || undefined,
-        invoiceDiscount,
+        invoiceDiscount: getTotalDiscount() - getItemDiscountTotal(),
         taxRate,
         paymentType: paymentMethod,
+        bankName: paymentMethod === 'transfer' ? bankName : undefined,
         paidAmount: isCreditSale ? 0 : amountTendered,
         userId: user?.id || 'system',
-        branchId: 'main-branch',
+        branchId: 'BR-01',
         deviceId: 'local',
       });
 
+      audioService.playSuccess();
       setSuccess(result);
     } catch (err: any) {
       setError(err?.message || 'Failed to complete sale. Please try again.');
@@ -240,6 +244,14 @@ export default function PaymentDialog({
             <span className="text-xs font-black text-[#02025C] uppercase bg-navy/5 px-3 py-1 rounded-lg">
               {paymentMethod}
             </span>
+            {paymentMethod === 'transfer' && bankName && (
+              <>
+                <span className="text-xs text-navy/20">•</span>
+                <span className="text-xs font-bold text-primary">
+                  {bankName}
+                </span>
+              </>
+            )}
             {customerName && (
               <>
                 <span className="text-xs text-navy/20">•</span>

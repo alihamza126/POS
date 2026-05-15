@@ -1,10 +1,22 @@
 import React from 'react';
-import { Search, Bell, User, Cloud, CloudOff } from 'lucide-react';
+import { Search, Bell, User, Cloud, CloudOff, Maximize, Minimize } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 
 export default function Topbar() {
   const { user } = useAuthStore();
+  const [isFullscreen, setIsFullscreen] = React.useState(true); // Default matches main process config
   const isOnline = true; // Placeholder for online status check
+
+  const handleToggleFullscreen = async () => {
+    await window.api.window.toggleFullscreen();
+  };
+
+  React.useEffect(() => {
+    const removeListener = window.api.window.onFullscreenChange((state) => {
+      setIsFullscreen(state);
+    });
+    return () => removeListener();
+  }, []);
 
   return (
     <header className="h-16 bg-surface border-b border-navy/20 flex items-center justify-between px-8 shadow-sm">
@@ -36,6 +48,15 @@ export default function Topbar() {
             </>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={handleToggleFullscreen}
+          className="text-text-secondary hover:text-primary transition-all p-2 hover:bg-primary/10 rounded-full"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        >
+          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
 
         <button
           type="button"

@@ -79,7 +79,7 @@ export default function AddCustomerDialog({
         // @ts-ignore
         await window.api.customers.update(
           customer.id,
-          { ...data, branchId: 'main-branch' },
+          { ...data, branchId: 'BR-01' },
           user?.id,
         );
         toast({
@@ -90,7 +90,7 @@ export default function AddCustomerDialog({
       } else {
         // @ts-ignore
         await window.api.customers.create(
-          { ...data, branchId: 'main-branch' },
+          { ...data, branchId: 'BR-01' },
           user?.id,
         );
         toast({

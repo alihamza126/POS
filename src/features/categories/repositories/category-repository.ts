@@ -55,6 +55,20 @@ export class CategoryRepository {
       .orderBy(categories.name)
       .all();
   }
+
+  static async findByName(name: string, branchId: string) {
+    return db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.name, name),
+          eq(categories.branchId, branchId),
+          isNull(categories.deletedAt),
+        ),
+      )
+      .get();
+  }
 }
 
 export default CategoryRepository;

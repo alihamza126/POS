@@ -10,6 +10,7 @@ export interface CartItem {
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'credit';
+export type DiscountType = 'fixed' | 'percentage';
 
 interface POSStore {
   // Cart state
@@ -17,9 +18,11 @@ interface POSStore {
   customerId: string | null;
   customerName: string | null;
   paymentMethod: PaymentMethod;
-  invoiceDiscount: number;
+  discountType: DiscountType;
+  discountValue: number;
   taxRate: number;
   amountTendered: number;
+  bankName: string | null;
 
   // Actions
   addItem: (product: {
@@ -33,9 +36,10 @@ interface POSStore {
   updateItemDiscount: (productId: string, discount: number) => void;
   setCustomer: (id: string | null, name: string | null) => void;
   setPaymentMethod: (method: PaymentMethod) => void;
-  setInvoiceDiscount: (amount: number) => void;
+  setDiscount: (value: number, type: DiscountType) => void;
   setTaxRate: (rate: number) => void;
   setAmountTendered: (amount: number) => void;
+  setBankName: (name: string | null) => void;
   clearCart: () => void;
 
   // Computed helpers
@@ -53,9 +57,11 @@ export const usePOSStore = create<POSStore>((set, get) => ({
   customerId: null,
   customerName: null,
   paymentMethod: 'cash',
-  invoiceDiscount: 0,
+  discountType: 'fixed',
+  discountValue: 0,
   taxRate: 0,
   amountTendered: 0,
+  bankName: null,
 
   addItem: (product) => {
     set((state) => {
@@ -125,9 +131,13 @@ export const usePOSStore = create<POSStore>((set, get) => ({
 
   setCustomer: (id, name) => set({ customerId: id, customerName: name }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
-  setInvoiceDiscount: (amount) => set({ invoiceDiscount: Math.max(0, amount) }),
+  setDiscount: (value, type) => {
+    const clampedValue = type === 'percentage' ? Math.min(100, Math.max(0, value)) : Math.max(0, value);
+    set({ discountValue: clampedValue, discountType: type });
+  },
   setTaxRate: (rate) => set({ taxRate: Math.max(0, rate) }),
   setAmountTendered: (amount) => set({ amountTendered: Math.max(0, amount) }),
+  setBankName: (name) => set({ bankName: name }),
 
   clearCart: () =>
     set({
@@ -135,8 +145,10 @@ export const usePOSStore = create<POSStore>((set, get) => ({
       customerId: null,
       customerName: null,
       paymentMethod: 'cash',
-      invoiceDiscount: 0,
+      discountType: 'fixed',
+      discountValue: 0,
       amountTendered: 0,
+      bankName: null,
     }),
 
   // Computed
@@ -151,8 +163,19 @@ export const usePOSStore = create<POSStore>((set, get) => ({
   },
 
   getTotalDiscount: () => {
-    const { invoiceDiscount } = get();
-    return get().getItemDiscountTotal() + invoiceDiscount;
+    const { discountType, discountValue } = get();
+    const subtotal = get().getSubtotal();
+    const itemDiscountTotal = get().getItemDiscountTotal();
+
+    let invoiceDiscountAmount = 0;
+    if (discountType === 'percentage') {
+      invoiceDiscountAmount = subtotal * (discountValue / 100);
+    } else {
+      invoiceDiscountAmount = discountValue;
+    }
+
+    // Ensure total discount (item + invoice) doesn't exceed subtotal
+    return Math.min(itemDiscountTotal + invoiceDiscountAmount, subtotal);
   },
 
   getTaxAmount: () => {

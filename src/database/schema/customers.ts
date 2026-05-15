@@ -9,6 +9,7 @@ export const customers = sqliteTable('customers', {
   address: text('address'),
   companyName: text('company_name'),
   notes: text('notes'),
+  ntn: text('ntn'),
   branchId: text('branch_id').notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
@@ -22,7 +23,7 @@ export const customerPayments = sqliteTable('customer_payments', {
     .references(() => customers.id),
   amount: real('amount').notNull(),
   paymentMethod: text('payment_method', {
-    enum: ['cash', 'bank_transfer', 'cheque', 'other'],
+    enum: ['cash', 'card', 'bank_transfer', 'cheque', 'other'],
   }).notNull(),
   bankName: text('bank_name'),
   referenceNo: text('reference_no'),

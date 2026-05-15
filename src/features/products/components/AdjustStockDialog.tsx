@@ -107,7 +107,7 @@ export default function AdjustStockDialog({
         type: data.type,
         reason: data.reason,
         userId: user?.id || 'system',
-        branchId: 'main-branch',
+        branchId: 'BR-01',
       });
 
       toast({

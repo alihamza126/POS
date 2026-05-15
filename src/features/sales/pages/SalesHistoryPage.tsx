@@ -17,7 +17,7 @@ export default function SalesHistoryPage() {
       setLoading(true);
       // @ts-ignore
       const result = await window.api.sales.list({
-        branchId: 'main-branch',
+        branchId: 'BR-01',
         query: searchQuery || undefined,
         status: statusFilter || undefined,
         paymentStatus: paymentStatusFilter || undefined,
@@ -52,7 +52,7 @@ export default function SalesHistoryPage() {
   const cancelInvoice = async (id: string) => {
     try {
       // @ts-ignore
-      await window.api.sales.cancel(id, 'system', 'main-branch', 'local');
+      await window.api.sales.cancel(id, 'system', 'BR-01', 'local');
       fetchInvoices();
       setSelectedInvoice(null);
     } catch (error: any) {

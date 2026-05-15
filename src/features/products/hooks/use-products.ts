@@ -23,7 +23,7 @@ export function useProducts(initialFilters = {}) {
       // @ts-ignore
       const result = await window.api.products.list({
         ...filters,
-        branchId: 'main-branch', // Default for now
+        branchId: 'BR-01', // Default for now
       });
       setProducts(result.items);
       setTotal(result.total);

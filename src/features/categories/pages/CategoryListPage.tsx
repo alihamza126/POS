@@ -35,7 +35,7 @@ export default function CategoryListPage() {
     try {
       setLoading(true);
       // @ts-ignore
-      const result = await window.api.categories.list('main-branch');
+      const result = await window.api.categories.list('BR-01');
       setCategories(result || []);
     } catch {
       toast({
@@ -61,7 +61,7 @@ export default function CategoryListPage() {
         {
           name: newName.trim(),
           description: newDescription.trim() || null,
-          branchId: 'main-branch',
+          branchId: 'BR-01',
         },
         user?.id,
       );

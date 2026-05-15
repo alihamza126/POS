@@ -3,6 +3,7 @@ import {
   ProductFilter,
 } from '../repositories/product-repository';
 import { AuditService } from '../../audit/services/audit-service';
+import { CategoryRepository } from '../../categories/repositories/category-repository';
 
 export class ProductService {
   static async getProducts(filters: ProductFilter) {
@@ -104,6 +105,78 @@ export class ProductService {
     });
 
     return movement;
+  }
+
+  static async importProductsBulk(products: any[], userId: string, branchId: string) {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    for (const data of products) {
+      try {
+        let categoryId = data.categoryId;
+
+        // If category name is provided instead of ID, try to find/create it
+        if (!categoryId && data.categoryName) {
+          let category = await CategoryRepository.findByName(data.categoryName, branchId);
+          if (!category) {
+            category = await CategoryRepository.create({
+              name: data.categoryName,
+              branchId,
+            });
+          }
+          categoryId = category.id;
+        }
+
+        const productData = {
+          name: data.name,
+          sku: data.sku,
+          barcode: data.barcode,
+          description: data.description,
+          categoryId: categoryId,
+          unit: data.unit || 'pcs',
+          purchasePrice: parseFloat(data.purchasePrice) || 0,
+          sellingPrice: parseFloat(data.sellingPrice) || 0,
+          reorderLevel: parseInt(data.reorderLevel) || 10,
+          branchId,
+        };
+
+        const product = await ProductRepository.create(productData);
+
+        // Initial stock movement
+        const initialStock = parseInt(data.initialStock) || 0;
+        if (initialStock > 0) {
+          await ProductRepository.addStockMovement({
+            productId: product.id,
+            type: 'purchase',
+            quantity: initialStock,
+            userId,
+            branchId,
+            reason: 'Imported initial stock',
+          });
+        }
+
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Error importing ${data.name || 'unknown product'}: ${error.message}`);
+      }
+    }
+
+    await AuditService.log({
+      userId,
+      action: 'PRODUCTS_IMPORTED',
+      entity: 'product',
+      entityId: 'multiple',
+      newValue: { count: results.success },
+      branchId,
+      deviceId: 'local',
+      metadata: { total: products.length, ...results },
+    });
+
+    return results;
   }
 }
 

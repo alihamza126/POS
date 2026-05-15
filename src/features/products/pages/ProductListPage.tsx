@@ -10,6 +10,7 @@ import {
   ChevronUp,
   ChevronDown,
   Scale,
+  FileUp,
 } from 'lucide-react';
 import {
   useReactTable,
@@ -35,6 +36,7 @@ import { useAuthStore } from '../../../stores/auth-store';
 import AddProductDialog from '../components/AddProductDialog';
 import ProductFiltersDialog from '../components/ProductFiltersDialog';
 import AdjustStockDialog from '../components/AdjustStockDialog';
+import ImportProductsDialog from '../components/ImportProductsDialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../hooks/use-toast';
 import { cn } from '../../../shared/utils';
@@ -48,6 +50,7 @@ export default function ProductListPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [isAdjustStockDialogOpen, setIsAdjustStockDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [selectedProductForStock, setSelectedProductForStock] =
     useState<any>(null);
@@ -61,7 +64,7 @@ export default function ProductListPage() {
     const loadCats = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('main-branch');
+        const cats = await window.api.categories.list('BR-01');
         setCategoryList(cats || []);
       } catch {
         // silently fail
@@ -306,6 +309,14 @@ export default function ProductListPage() {
             <Scale size={20} />
             Adjust Stock
           </Button>
+          <Button 
+            onClick={() => setIsImportDialogOpen(true)} 
+            variant="outline" 
+            className="gap-2 font-bold text-navy border-navy/10 hover:bg-navy/5"
+          >
+            <FileUp size={20} />
+            Import CSV
+          </Button>
           <Button onClick={handleAddNew} className="gap-2">
             <Plus size={20} />
             Add Product
@@ -539,6 +550,12 @@ export default function ProductListPage() {
         onOpenChange={setIsFilterDialogOpen}
         filters={filters}
         onApply={(newFilters) => updateFilters(newFilters)}
+      />
+
+      <ImportProductsDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onSuccess={refresh}
       />
     </div>
   );

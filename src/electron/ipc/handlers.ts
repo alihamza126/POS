@@ -51,6 +51,13 @@ export function setupIpcHandlers() {
     },
   );
 
+  ipcMain.handle(
+    'products:import-bulk',
+    async (_event, { products, userId, branchId }) => {
+      return ProductService.importProductsBulk(products, userId, branchId);
+    },
+  );
+
   // DB Handlers
   ipcMain.handle('db:query', async (_event, { action, entity, payload }) => {
     // This would dispatch to repositories based on entity

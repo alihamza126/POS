@@ -4,8 +4,12 @@ import { db } from '../../../database/sqlite/db';
 import { customerPayments } from '../../../database/schema/customers';
 import { syncService } from '../../../sync/services/sync-service';
 
-export default class PaymentRepository {
+export class PaymentRepository {
   static async create(data: any) {
+    if (!data.customerId) {
+      throw new Error('Customer ID is required to record a payment');
+    }
+
     const id = uuidv4();
     const newPayment = {
       ...data,

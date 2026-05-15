@@ -15,6 +15,7 @@ import {
   FileText,
   ArrowUpRight,
   ArrowDownLeft,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 
@@ -30,9 +31,9 @@ interface LedgerEntry {
 }
 
 interface CustomerLedgerTabProps {
-  ledger: LedgerEntry[];
-  onPrint?: () => void;
-  onExport?: () => void;
+  ledger: any[];
+  onPrint: () => void;
+  onExport: () => void;
 }
 
 export default function CustomerLedgerTab({
@@ -42,58 +43,55 @@ export default function CustomerLedgerTab({
 }: CustomerLedgerTabProps) {
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center bg-white p-6 rounded-[24px] shadow-soft border border-navy/5">
         <div>
-          <h3 className="text-xl font-black text-navy">Account Ledger</h3>
-          <p className="text-sm font-medium text-text-secondary">
-            Historical transaction records and running balance.
+          <h3 className="text-2xl font-black text-navy tracking-tight">Account Ledger</h3>
+          <p className="text-sm font-bold text-text-secondary mt-1">
+            Historical transaction records and real-time running balance.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             variant="outline"
-            size="sm"
             onClick={onExport}
-            className="rounded-xl font-bold flex items-center gap-2"
+            className="rounded-xl font-black flex items-center gap-2 border-navy/10 hover:bg-navy hover:text-white transition-all h-11 px-6"
           >
-            <Download size={16} />
+            <Download size={18} />
             Export CSV
           </Button>
           <Button
-            variant="outline"
-            size="sm"
             onClick={onPrint}
-            className="rounded-xl font-bold flex items-center gap-2"
+            className="rounded-xl font-black flex items-center gap-2 bg-cyan text-navy hover:bg-navy hover:text-white transition-all h-11 px-6 shadow-lg shadow-cyan/20"
           >
-            <Printer size={16} />
+            <Printer size={18} />
             Print Statement
           </Button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-navy/10 overflow-hidden bg-white shadow-soft">
+      <div className="rounded-[28px] border border-navy/5 overflow-hidden bg-white shadow-soft">
         <Table>
           <TableHeader className="bg-navy/5">
-            <TableRow>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14 pl-8">
                 Date
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14">
                 Type
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14">
                 Reference
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14">
                 Description
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider text-right">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14 text-right">
                 Debit (+)
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider text-right">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14 text-right">
                 Credit (-)
               </TableHead>
-              <TableHead className="font-black text-navy uppercase text-xs tracking-wider text-right">
+              <TableHead className="font-black text-navy uppercase text-[10px] tracking-widest h-14 text-right pr-8">
                 Balance
               </TableHead>
             </TableRow>
@@ -103,50 +101,53 @@ export default function CustomerLedgerTab({
               <TableRow>
                 <TableCell
                   colSpan={7}
-                  className="h-32 text-center text-text-secondary font-medium"
+                  className="h-48 text-center text-text-secondary font-bold text-lg opacity-40"
                 >
+                  <BookOpen size={48} className="mx-auto mb-4 opacity-10" />
                   No transactions found for this period.
                 </TableCell>
               </TableRow>
             ) : (
-              ledger.map((entry) => (
+              ledger.map((entry, index) => (
                 <TableRow
                   key={`${entry.type}-${entry.id}`}
-                  className="hover:bg-navy/[0.02] transition-colors"
+                  className={`hover:bg-navy/[0.03] transition-all border-navy/[0.03] ${
+                    index % 2 === 0 ? 'bg-white' : 'bg-navy/[0.01]'
+                  }`}
                 >
-                  <TableCell className="font-bold text-navy py-4">
+                  <TableCell className="font-bold text-navy py-5 pl-8 text-sm">
                     {format(new Date(entry.date), 'dd MMM yyyy')}
                   </TableCell>
                   <TableCell>
                     {entry.type === 'invoice' ? (
-                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none px-3 py-1 rounded-lg flex items-center gap-1 w-fit">
+                      <div className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1.5 rounded-xl flex items-center gap-2 w-fit font-black text-[10px] uppercase tracking-wider">
                         <FileText size={12} />
                         Invoice
-                      </Badge>
+                      </div>
                     ) : (
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none px-3 py-1 rounded-lg flex items-center gap-1 w-fit">
+                      <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-xl flex items-center gap-2 w-fit font-black text-[10px] uppercase tracking-wider">
                         <ArrowDownLeft size={12} />
                         Payment
-                      </Badge>
+                      </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-black text-navy/70 uppercase">
+                  <TableCell className="font-mono text-[10px] font-black text-navy/50 uppercase tracking-tighter bg-navy/[0.03] px-3 py-1 rounded-lg w-fit">
                     {entry.number}
                   </TableCell>
-                  <TableCell className="font-medium text-navy/80 max-w-[200px] truncate">
+                  <TableCell className="font-bold text-navy/70 max-w-[220px] truncate text-xs">
                     {entry.memo}
                   </TableCell>
-                  <TableCell className="text-right font-black text-blue-600">
+                  <TableCell className="text-right font-black text-blue-600 text-sm">
                     {entry.debit > 0
                       ? `Rs. ${entry.debit.toLocaleString()}`
                       : '-'}
                   </TableCell>
-                  <TableCell className="text-right font-black text-emerald-600">
+                  <TableCell className="text-right font-black text-emerald-600 text-sm">
                     {entry.credit > 0
                       ? `Rs. ${entry.credit.toLocaleString()}`
                       : '-'}
                   </TableCell>
-                  <TableCell className="text-right font-black text-navy text-lg">
+                  <TableCell className="text-right font-black text-navy text-base pr-8">
                     Rs. {entry.balance.toLocaleString()}
                   </TableCell>
                 </TableRow>
@@ -157,15 +158,17 @@ export default function CustomerLedgerTab({
       </div>
 
       <div className="flex justify-end pt-4">
-        <div className="bg-navy p-6 rounded-2xl text-white shadow-lg min-w-[300px]">
-          <div className="flex justify-between items-center opacity-70 mb-2">
-            <span className="text-sm font-bold uppercase tracking-wider">
-              Closing Balance
+        <div className="bg-navy p-8 rounded-[32px] text-white shadow-2xl shadow-navy/20 min-w-[340px] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
+          <div className="flex justify-between items-center opacity-60 mb-3">
+            <span className="text-xs font-black uppercase tracking-[0.2em]">
+              Net Closing Balance
             </span>
-            <History size={16} />
+            <History size={18} className="text-cyan" />
           </div>
-          <div className="text-3xl font-black">
-            Rs. {(ledger.length > 0 ? ledger[0].balance : 0).toLocaleString()}
+          <div className="text-4xl font-black tracking-tighter flex items-baseline gap-2">
+            <span className="text-lg opacity-50 font-bold">Rs.</span>
+            {(ledger.length > 0 ? ledger[0].balance : 0).toLocaleString()}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import {
   CustomerRepository,
   CustomerFilter,
 } from '../repositories/customer-repository';
-import PaymentRepository from '../repositories/payment-repository';
+import { PaymentRepository } from '../repositories/payment-repository';
 import { AuditService } from '../../audit/services/audit-service';
 
 export class CustomerService {

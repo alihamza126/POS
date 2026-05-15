@@ -4,6 +4,7 @@ import {
   shell,
   BrowserWindow,
   MenuItemConstructorOptions,
+  dialog,
 } from 'electron';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
@@ -155,9 +156,9 @@ export default class MenuBuilder {
       label: 'Help',
       submenu: [
         {
-          label: 'Learn More',
+          label: 'Developer Mail',
           click() {
-            shell.openExternal('https://electronjs.org');
+            shell.openExternal('mailto:alihamzageo75@gmail.com');
           },
         },
         {
@@ -178,6 +179,23 @@ export default class MenuBuilder {
           label: 'Search Issues',
           click() {
             shell.openExternal('https://github.com/electron/electron/issues');
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Developer Details',
+          click: () => {
+            dialog.showMessageBox(this.mainWindow, {
+              type: 'info',
+              title: 'Developer Details',
+              message: 'Ali Hamza',
+              detail:
+                'Whatsapp Contact: +923037828419\n' +
+                'Email: alihamzah.dev@gmail.com\n' +
+                'Need help? Call on: 03037828419',
+              buttons: ['OK'],
+              noLink: true,
+            });
           },
         },
       ],
@@ -255,30 +273,21 @@ export default class MenuBuilder {
       {
         label: 'Help',
         submenu: [
+          { type: 'separator' },
           {
-            label: 'Learn More',
-            click() {
-              shell.openExternal('https://electronjs.org');
-            },
-          },
-          {
-            label: 'Documentation',
-            click() {
-              shell.openExternal(
-                'https://github.com/electron/electron/tree/main/docs#readme',
-              );
-            },
-          },
-          {
-            label: 'Community Discussions',
-            click() {
-              shell.openExternal('https://www.electronjs.org/community');
-            },
-          },
-          {
-            label: 'Search Issues',
-            click() {
-              shell.openExternal('https://github.com/electron/electron/issues');
+            label: 'Developer Details',
+            click: () => {
+              dialog.showMessageBox(this.mainWindow, {
+                type: 'info',
+                title: 'Developer Details',
+                message: 'Ali Hamza',
+                detail:
+                  'Whatsapp Contact: +923037828419\n' +
+                  'Email: alihamzah.dev@gmail.com\n' +
+                  'Need help? Call on: 03037828419',
+                buttons: ['OK'],
+                noLink: true,
+              });
             },
           },
         ],

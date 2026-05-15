@@ -51,7 +51,7 @@ export default function POSPage() {
     const loadCats = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('main-branch');
+        const cats = await window.api.categories.list('BR-01');
         setCategoryList(cats || []);
       } catch {
         // silently fail
@@ -66,7 +66,7 @@ export default function POSPage() {
       setLoadingProducts(true);
       // @ts-ignore
       const result = await window.api.products.list({
-        branchId: 'main-branch',
+        branchId: 'BR-01',
         query: searchQuery || undefined,
         limit: 100,
       });
@@ -94,7 +94,7 @@ export default function POSPage() {
   const fetchDailySummary = useCallback(async () => {
     try {
       // @ts-ignore
-      const summary = await window.api.sales.getDailySummary('main-branch');
+      const summary = await window.api.sales.getDailySummary('BR-01');
       setDailySummary(summary);
     } catch {
       // Silently fail — status bar is non-critical

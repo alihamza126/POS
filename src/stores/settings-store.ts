@@ -16,9 +16,9 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       company: {
-        name: 'FIVE STAR INDUSTRY',
-        address: '123 Business Road, Tech City',
-        phone: '+1 234 567 8900',
+        name: 'A POS',
+        address: 'Faqirwali Main Road, Haroonabad',
+        phone: '+92 300 1234567',
       },
       setCompanyDetails: (details) => set({ company: details }),
     }),

@@ -81,7 +81,7 @@ export default function AddPaymentDialog({
     try {
       // @ts-ignore
       await window.api.customers.recordPayment(
-        { ...data, branchId: 'main-branch' },
+        { ...data, branchId: 'BR-01' },
         user?.id,
       );
 

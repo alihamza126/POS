@@ -35,6 +35,28 @@ ipcMain.on('ipc-example', async (event, arg) => {
   event.reply('ipc-example', msgTemplate('pong'));
 });
 
+ipcMain.handle('window:toggle-fullscreen', () => {
+  if (mainWindow) {
+    const isFullscreen = mainWindow.isFullScreen();
+    if (isFullscreen) {
+      mainWindow.setFullScreen(false);
+      mainWindow.unmaximize();
+      mainWindow.center();
+    } else {
+      mainWindow.setFullScreen(true);
+    }
+    return !isFullscreen;
+  }
+  return false;
+});
+
+ipcMain.on('app:confirm-close', () => {
+  if (mainWindow) {
+    mainWindow.destroy();
+  }
+  app.quit();
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -77,6 +99,9 @@ const createWindow = async () => {
     show: false,
     width: 1024,
     height: 728,
+    fullscreen: true,
+    resizable: false,
+    maximizable: false,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -99,6 +124,21 @@ const createWindow = async () => {
       mainWindow.minimize();
     } else {
       mainWindow.show();
+    }
+  });
+
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow?.webContents.send('window:fullscreen-change', true);
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow?.webContents.send('window:fullscreen-change', false);
+  });
+
+  mainWindow.on('close', (e) => {
+    if (mainWindow) {
+      e.preventDefault();
+      mainWindow.webContents.send('app:close-request');
     }
   });
 

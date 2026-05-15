@@ -23,7 +23,7 @@ export function useCustomers(initialFilters = {}) {
       // @ts-ignore
       const result = await window.api.customers.list({
         ...filters,
-        branchId: 'main-branch',
+        branchId: 'BR-01',
       });
       setCustomers(result.items);
       setTotal(result.total);

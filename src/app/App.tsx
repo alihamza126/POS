@@ -17,6 +17,7 @@ import CategoryListPage from '../features/categories/pages/CategoryListPage';
 import SettingsPage from '../features/settings/pages/SettingsPage';
 
 import { Toaster } from '../components/ui/toaster';
+import GlobalCloseDialog from '../components/shared/GlobalCloseDialog';
 
 function Dashboard() {
   return (
@@ -81,6 +82,7 @@ export default function App() {
         />
       </Routes>
       <Toaster />
+      <GlobalCloseDialog />
     </Router>
   );
 }

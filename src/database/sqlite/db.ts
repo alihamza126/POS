@@ -20,8 +20,9 @@ const schema = {
   ...categoriesSchema,
 };
 
-// Ensure this runs only in the main process
-const dbPath = path.join(app.getPath('userData'), 'pos-v1.db');
+// Ensure this runs only in the main process or during testing
+const dbPath = process.env.DATABASE_URL || 
+  (app ? path.join(app.getPath('userData'), 'pos-v1.db') : path.join(process.cwd(), 'pos-v1.db'));
 const sqlite = new Database(dbPath);
 
 // Enable WAL mode for better performance

@@ -31,6 +31,8 @@ const productHandler = {
     ipcRenderer.invoke('products:delete', { id, userId }),
   adjustStock: (params: any) =>
     ipcRenderer.invoke('products:adjust-stock', params),
+  importBulk: (params: { products: any[]; userId: string; branchId: string }) =>
+    ipcRenderer.invoke('products:import-bulk', params),
 };
 
 const auditHandler = {
@@ -81,6 +83,21 @@ const categoryHandler = {
     ipcRenderer.invoke('categories:delete', { id, userId }),
 };
 
+const windowHandler = {
+  toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+  onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
+    const subscription = (_event: any, value: boolean) => callback(value);
+    ipcRenderer.on('window:fullscreen-change', subscription);
+    return () =>
+      ipcRenderer.removeListener('window:fullscreen-change', subscription);
+  },
+  onCloseRequest: (callback: () => void) => {
+    ipcRenderer.on('app:close-request', () => callback());
+    return () => ipcRenderer.removeAllListeners('app:close-request');
+  },
+  confirmClose: () => ipcRenderer.send('app:confirm-close'),
+};
+
 contextBridge.exposeInMainWorld('api', {
   auth: authHandler,
   db: dbHandler,
@@ -90,6 +107,7 @@ contextBridge.exposeInMainWorld('api', {
   customers: customerHandler,
   sales: salesHandler,
   categories: categoryHandler,
+  window: windowHandler,
 });
 
 export type ApiHandler = {
@@ -101,4 +119,5 @@ export type ApiHandler = {
   customers: typeof customerHandler;
   sales: typeof salesHandler;
   categories: typeof categoryHandler;
+  window: typeof windowHandler;
 };

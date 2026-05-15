@@ -425,18 +425,23 @@ export default function CustomerListPage() {
         customer={selectedCustomer}
       />
 
-      <ReceivePaymentDialog
-        open={isPaymentDialogOpen}
-        onOpenChange={setIsPaymentDialogOpen}
-        customerId={selectedCustomer?.id}
-        onSuccess={() => {
-          refresh();
-          toast({
-            title: 'Payment Received',
-            description: 'Customer balance has been updated.',
-          });
-        }}
-      />
+      {selectedCustomer && (
+        <ReceivePaymentDialog
+          open={isPaymentDialogOpen}
+          onOpenChange={(open) => {
+            setIsPaymentDialogOpen(open);
+            if (!open) setSelectedCustomer(null);
+          }}
+          customerId={selectedCustomer.id}
+          onSuccess={() => {
+            refresh();
+            toast({
+              title: 'Payment Received',
+              description: 'Customer balance has been updated.',
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import {
   Plus,
   Minus,
   User,
-  CreditCard,
   Banknote,
   Building2,
   Wallet,
@@ -14,6 +13,7 @@ import SearchableSelect, {
   SearchableSelectOption,
 } from '../../../components/ui/searchable-select';
 import { usePOSStore, PaymentMethod } from '../../../stores/pos-store';
+import { PAKISTANI_BANKS } from '../../../shared/constants/banks';
 import PaymentDialog from './PaymentDialog';
 
 interface CartPanelProps {
@@ -26,7 +26,6 @@ const PAYMENT_METHODS: {
   icon: React.ReactNode;
 }[] = [
   { value: 'cash', label: 'Cash', icon: <Banknote size={14} /> },
-  { value: 'card', label: 'Card', icon: <CreditCard size={14} /> },
   { value: 'transfer', label: 'Transfer', icon: <Building2 size={14} /> },
   { value: 'credit', label: 'Credit', icon: <Wallet size={14} /> },
 ];
@@ -40,12 +39,15 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
     setPaymentMethod,
     customerId,
     setCustomer,
-    invoiceDiscount,
-    setInvoiceDiscount,
+    discountType,
+    discountValue,
+    setDiscount,
     getSubtotal,
     getTotalDiscount,
     getTaxAmount,
     getGrandTotal,
+    bankName,
+    setBankName,
     clearCart,
   } = usePOSStore();
 
@@ -65,7 +67,7 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
       try {
         // @ts-ignore
         const result = await window.api.customers.list({
-          branchId: 'main-branch',
+          branchId: 'BR-01',
           limit: 500,
         });
         const fetchedItems = result.items || [];
@@ -203,37 +205,70 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
         {/* Bottom Section (always visible) */}
         <div className="border-t border-navy/10 bg-white px-5 py-4 space-y-3 shrink-0">
           {/* Customer Picker */}
-          <SearchableSelect
-            options={customerOptions}
-            value={customerId}
-            onSelect={handleSelectCustomer}
-            onClear={handleClearCustomer}
-            placeholder="Select Customer (optional)"
-            searchPlaceholder="Search by name or phone..."
-            icon={<User size={14} />}
-            dropUp
-            emptyMessage="No customers found"
-          />
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-xs font-bold text-navy/40 shrink-0">
+              Customer:
+            </span>
+           <span className='w-full'>
+             <SearchableSelect
+              options={customerOptions}
+              value={customerId}
+              onSelect={handleSelectCustomer}
+              onClear={handleClearCustomer}
+              placeholder="Select Customer (optional)"
+              searchPlaceholder="Search by name or phone..."
+              icon={<User size={14} />}
+              dropUp
+              emptyMessage="No customers found"
+              />
+           </span>
+          </div>
 
           {/* Invoice Discount */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-navy/40 shrink-0">
               Discount:
             </span>
-            <input
-              type="number"
-              min={0}
-              value={invoiceDiscount || ''}
-              onChange={(e) =>
-                setInvoiceDiscount(parseFloat(e.target.value) || 0)
-              }
-              placeholder="0"
-              className="flex-1 bg-[#F1EFF9] border border-navy/5 rounded-lg px-3 py-1.5 text-sm font-bold text-[#02025C] focus:outline-none focus:ring-1 focus:ring-[#24D4FE] text-right"
-            />
+            <div className="flex-1 flex items-center bg-[#F1EFF9] border border-navy/5 rounded-lg overflow-hidden h-9">
+              <div className="flex h-full border-r border-navy/5 bg-navy/5 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setDiscount(discountValue, 'fixed')}
+                  className={`px-2 text-[10px] font-black transition-all rounded ${
+                    discountType === 'fixed'
+                      ? 'bg-white text-[#02025C] shadow-sm'
+                      : 'text-navy/40 hover:text-navy/60'
+                  }`}
+                >
+                  Rs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDiscount(discountValue, 'percentage')}
+                  className={`px-2 text-[10px] font-black transition-all rounded ${
+                    discountType === 'percentage'
+                      ? 'bg-white text-[#02025C] shadow-sm'
+                      : 'text-navy/40 hover:text-navy/60'
+                  }`}
+                >
+                  %
+                </button>
+              </div>
+              <input
+                type="number"
+                min={0}
+                value={discountValue || ''}
+                onChange={(e) =>
+                  setDiscount(parseFloat(e.target.value) || 0, discountType)
+                }
+                placeholder="0"
+                className="flex-1 h-full bg-transparent px-3 text-sm font-bold text-[#02025C] focus:outline-none text-right"
+              />
+            </div>
           </div>
 
           {/* Payment Method */}
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {PAYMENT_METHODS.map((method) => (
               <button
                 key={method.value}
@@ -252,6 +287,23 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
               </button>
             ))}
           </div>
+
+          {/* Bank Selection (Compulsory for Transfer) */}
+          {paymentMethod === 'transfer' && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+              <SearchableSelect
+                options={PAKISTANI_BANKS.map((bank) => ({ id: bank, label: bank }))}
+                value={bankName}
+                onSelect={(option) => setBankName(option.id)}
+                onClear={() => setBankName(null)}
+                placeholder="Select Bank / Local Wallet"
+                searchPlaceholder="Search bank..."
+                icon={<Building2 size={14} />}
+                dropUp
+                className="border-primary/20"
+              />
+            </div>
+          )}
 
           {/* Totals */}
           <div className="space-y-1 pt-2 border-t border-navy/5">
@@ -282,7 +334,10 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
           {/* Complete Sale */}
           <button
             type="button"
-            disabled={items.length === 0}
+            disabled={
+              items.length === 0 ||
+              (paymentMethod === 'transfer' && !bankName)
+            }
             onClick={() => setShowPayment(true)}
             className="w-full bg-[#24D4FE] hover:bg-[#1bc0e8] text-[#02025C] font-black py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-[#24D4FE]/30 text-base uppercase tracking-wider"
           >

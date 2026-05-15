@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import CustomerLedgerTab from './CustomerLedgerTab';
 import { generateCustomerStatementPDF } from '../../../shared/utils/pdf-generator';
+import { exportToCSV } from '../../../shared/utils/csv-exporter';
+import { useSettingsStore } from '../../../stores/settings-store';
 
 interface CustomerDetailsTabsProps {
   customerId: string;
@@ -36,6 +38,14 @@ export default function CustomerDetailsTabs({
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [ledger, setLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { company } = useSettingsStore();
+
+  const companyDetails = {
+    name: company.name,
+    address: company.address,
+    phone: company.phone,
+    email: (company as any).email || '',
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +84,27 @@ export default function CustomerDetailsTabs({
       date: new Date().toLocaleDateString(),
       ledger: ledger,
       summary: summary,
+      companyDetails,
     });
+  };
+
+  const handleExportLedger = () => {
+    const headers = ['Date', 'Type', 'Reference', 'Memo', 'Debit', 'Credit', 'Balance'];
+    const data = ledger.map((entry) => [
+      new Date(entry.date).toLocaleDateString(),
+      entry.type.toUpperCase(),
+      entry.number || '',
+      entry.memo || '',
+      entry.debit || 0,
+      entry.credit || 0,
+      entry.balance || 0,
+    ]);
+
+    exportToCSV(
+      `Statement_${customer?.name || 'Customer'}_${new Date().getTime()}.csv`,
+      headers,
+      data
+    );
   };
 
   if (loading) {
@@ -212,7 +242,11 @@ export default function CustomerDetailsTabs({
         value="ledger"
         className="animate-in fade-in slide-in-from-bottom-4"
       >
-        <CustomerLedgerTab ledger={ledger} onPrint={handlePrintLedger} />
+        <CustomerLedgerTab
+          ledger={ledger}
+          onPrint={handlePrintLedger}
+          onExport={handleExportLedger}
+        />
       </TabsContent>
 
       <TabsContent

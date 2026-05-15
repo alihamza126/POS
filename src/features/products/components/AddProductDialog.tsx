@@ -83,7 +83,7 @@ export default function AddProductDialog({
     const loadCategories = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('main-branch');
+        const cats = await window.api.categories.list('BR-01');
         setCategoryList(cats || []);
       } catch {
         // Categories are optional — fail silently
@@ -143,7 +143,7 @@ export default function AddProductDialog({
         // @ts-ignore
         await window.api.products.update(
           product.id,
-          { ...data, branchId: 'main-branch' },
+          { ...data, branchId: 'BR-01' },
           user?.id,
         );
         toast({
@@ -154,7 +154,7 @@ export default function AddProductDialog({
       } else {
         // @ts-ignore
         await window.api.products.create(
-          { ...data, branchId: 'main-branch' },
+          { ...data, branchId: 'BR-01' },
           user?.id,
         );
         toast({
