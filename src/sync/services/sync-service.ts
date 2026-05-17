@@ -1,13 +1,15 @@
 import { db } from '../../database/sqlite/db';
 import { syncQueue, syncLogs } from '../../database/schema/sync';
 import { categories } from '../../database/schema/categories';
-import { suppliers, purchaseInvoices, supplierPayments } from '../../database/schema/suppliers';
+import { suppliers, purchaseInvoices, purchaseInvoiceItems, supplierPayments } from '../../database/schema/suppliers';
 import { customers, customerPayments } from '../../database/schema/customers';
 import { products, stockMovements } from '../../database/schema/inventory';
 import { invoices, invoiceItems } from '../../database/schema/sales';
+import { users, roles } from '../../database/schema/auth';
 import { eq, and, asc, or, lt, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { supabase } from '../../shared/utils/supabase';
+
 
 export interface SyncStatus {
   pendingCount: number;
@@ -37,6 +39,28 @@ function convertKeysToSnakeCase(obj: any): any {
   return obj;
 }
 
+function snakeToCamelCase(str: string): string {
+  return str.replace(/([-_][a-z])/g, group =>
+    group.toUpperCase().replace('-', '').replace('_', '')
+  );
+}
+
+function convertKeysToCamelCase(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(v => convertKeysToCamelCase(v));
+  } else if (obj !== null && typeof obj === 'object') {
+    if (obj instanceof Date) {
+      return obj;
+    }
+    return Object.keys(obj).reduce((result: any, key) => {
+      const camelKey = snakeToCamelCase(key);
+      result[camelKey] = convertKeysToCamelCase(obj[key]);
+      return result;
+    }, {});
+  }
+  return obj;
+}
+
 export class SyncService {
   private isSyncing = false;
 
@@ -49,6 +73,69 @@ export class SyncService {
       .select()
       .from(syncLogs)
       .orderBy(asc(syncLogs.startTime));
+  }
+
+  async pullFromCloud() {
+    console.log('[SyncService] Starting pull sync from cloud Supabase...');
+    
+    const tablesToPull = [
+      { supabaseTable: 'roles', localSchema: roles, name: 'roles' },
+      { supabaseTable: 'users', localSchema: users, name: 'users' },
+      { supabaseTable: 'categories', localSchema: categories, name: 'categories' },
+      { supabaseTable: 'customers', localSchema: customers, name: 'customers' },
+      { supabaseTable: 'suppliers', localSchema: suppliers, name: 'suppliers' },
+      { supabaseTable: 'products', localSchema: products, name: 'products' },
+      { supabaseTable: 'invoices', localSchema: invoices, name: 'invoices' },
+      { supabaseTable: 'invoice_items', localSchema: invoiceItems, name: 'invoice_items' },
+      { supabaseTable: 'stock_movements', localSchema: stockMovements, name: 'stock_movements' },
+      { supabaseTable: 'customer_payments', localSchema: customerPayments, name: 'customer_payments' },
+      { supabaseTable: 'supplier_payments', localSchema: supplierPayments, name: 'supplier_payments' },
+      { supabaseTable: 'purchase_invoices', localSchema: purchaseInvoices, name: 'purchase_invoices' },
+      { supabaseTable: 'purchase_invoice_items', localSchema: purchaseInvoiceItems, name: 'purchase_invoice_items' },
+    ];
+
+    let totalPulled = 0;
+
+    for (const table of tablesToPull) {
+      try {
+        console.log(`[SyncService] Fetching '${table.supabaseTable}' from Supabase...`);
+        const { data, error } = await supabase
+          .from(table.supabaseTable)
+          .select('*');
+
+        if (error) {
+          console.error(`[SyncService] Failed to pull '${table.supabaseTable}':`, error.message);
+          continue;
+        }
+
+        if (!data || data.length === 0) {
+          console.log(`[SyncService] No records found on cloud for '${table.supabaseTable}'`);
+          continue;
+        }
+
+        console.log(`[SyncService] Found ${data.length} records on cloud for '${table.supabaseTable}'. Syncing locally...`);
+        let upsertedCount = 0;
+
+        for (const row of data) {
+          const camelCaseRow = convertKeysToCamelCase(row);
+          
+          // Upsert into local SQLite using Drizzle
+          await db.insert(table.localSchema).values(camelCaseRow).onConflictDoUpdate({
+            target: table.localSchema.id,
+            set: camelCaseRow
+          });
+          upsertedCount++;
+        }
+
+        totalPulled += upsertedCount;
+        console.log(`[SyncService] Successfully synced ${upsertedCount} records locally for table '${table.name}'`);
+      } catch (err) {
+        console.error(`[SyncService] Error during pull for '${table.name}':`, err instanceof Error ? err.message : err);
+      }
+    }
+
+    console.log(`[SyncService] Pull sync completed. Total records synced locally: ${totalPulled}`);
+    return { success: true, totalPulled };
   }
 
   async getStatus(): Promise<SyncStatus> {
@@ -138,15 +225,35 @@ export class SyncService {
     }
   }
 
+  async isLocalDatabaseEmpty(): Promise<boolean> {
+    try {
+      const categoryCount = await db.select({ count: sql`count(*)` }).from(categories);
+      const productCount = await db.select({ count: sql`count(*)` }).from(products);
+      
+      const totalCategories = (categoryCount[0] as any)?.count || 0;
+      const totalProducts = (productCount[0] as any)?.count || 0;
+      
+      return totalCategories === 0 && totalProducts === 0;
+    } catch (e) {
+      return true; // If error, assume empty or uninitialized
+    }
+  }
+
   async processQueue() {
     if (this.isSyncing) return;
     this.isSyncing = true;
 
-    // Run the bootstrapping logic to bring legacy/offline items into the queue
+    // Run the bootstrapping logic or trigger initial pull if fresh database
     try {
-      await this.bootstrapQueue();
+      const isEmpty = await this.isLocalDatabaseEmpty();
+      if (isEmpty) {
+        console.log('[SyncService] Local database is empty. Triggering automatic initial pull from cloud...');
+        await this.pullFromCloud();
+      } else {
+        await this.bootstrapQueue();
+      }
     } catch (bootstrapErr) {
-      console.error('[SyncService] Bootstrap failed:', bootstrapErr);
+      console.error('[SyncService] Bootstrap/Pull failed:', bootstrapErr);
     }
 
     const logId = crypto.randomUUID();

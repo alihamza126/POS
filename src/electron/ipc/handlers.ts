@@ -18,6 +18,18 @@ export function setupIpcHandlers() {
     return AuthService.login(credentials.username, credentials.password);
   });
 
+  ipcMain.handle('auth:get-users', async () => {
+    return AuthService.getUsers();
+  });
+
+  ipcMain.handle('auth:create-user', async (_event, { username, password, role, adminUserId }) => {
+    return AuthService.createUser(username, password, role, adminUserId);
+  });
+
+  ipcMain.handle('auth:change-password', async (_event, { username, newPassword, adminUserId }) => {
+    return AuthService.changePassword(username, newPassword, adminUserId);
+  });
+
   // Product Handlers
   ipcMain.handle('products:list', async (_event, filters) => {
     return ProductService.getProducts(filters);
@@ -79,6 +91,10 @@ export function setupIpcHandlers() {
 
   ipcMain.handle('sync:trigger', async () => {
     return syncService.processQueue();
+  });
+
+  ipcMain.handle('sync:pull', async () => {
+    return syncService.pullFromCloud();
   });
 
   ipcMain.handle('sync:set-auto', async (_event, enabled: boolean) => {

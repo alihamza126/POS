@@ -74,6 +74,52 @@ export class AuthService {
       entityId: userId,
     });
   }
+
+  static async getUsers(): Promise<any[]> {
+    const list = await UserRepository.listAllUsers();
+    return list.map(u => ({
+      id: u.id,
+      name: u.username,
+      role: u.role,
+      branchId: APP_CONFIG.branch.defaultId,
+      active: u.active
+    }));
+  }
+
+  static async createUser(username: string, passwordHash: string, role: string, adminUserId: string): Promise<any> {
+    const existing = await UserRepository.findByUsername(username);
+    if (existing) {
+      throw new Error(`Username ${username} already exists`);
+    }
+    const newUser = await UserRepository.createUser(username, passwordHash, role as any);
+    
+    await AuditService.log({
+      userId: adminUserId,
+      deviceId: APP_CONFIG.branch.defaultDeviceId,
+      branchId: APP_CONFIG.branch.defaultId,
+      action: 'USER_CREATED',
+      entity: 'user',
+      entityId: newUser.id,
+      newValue: JSON.stringify({ username, role }),
+    });
+
+    return { success: true };
+  }
+
+  static async changePassword(username: string, newPasswordHash: string, adminUserId: string): Promise<any> {
+    await UserRepository.updatePassword(username, newPasswordHash);
+
+    await AuditService.log({
+      userId: adminUserId,
+      deviceId: APP_CONFIG.branch.defaultDeviceId,
+      branchId: APP_CONFIG.branch.defaultId,
+      action: 'USER_PASSWORD_CHANGED',
+      entity: 'user',
+      entityId: username,
+    });
+
+    return { success: true };
+  }
 }
 
 export default AuthService;

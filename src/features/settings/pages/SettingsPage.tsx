@@ -4,14 +4,12 @@ import {
   Cloud, 
   Shield, 
   Printer, 
-  Bell, 
-  Building, 
-  Database,
-  ChevronRight,
-  ArrowRight
+  Building
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import SyncSettings from '../components/SyncSettings';
+import CompanySettings from '../components/CompanySettings';
+import UserManagement from '../components/UserManagement';
 
 export default function SettingsPage() {
   return (
@@ -66,31 +64,11 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="company" className="mt-0">
-          <div className="bg-surface p-12 rounded-[40px] border border-navy/10 shadow-soft text-center space-y-4">
-            <div className="w-20 h-20 bg-navy/5 rounded-3xl flex items-center justify-center text-navy/20 mx-auto">
-              <Building size={40} />
-            </div>
-            <h2 className="text-2xl font-bold text-navy">Company Profile</h2>
-            <p className="text-navy/50 max-w-md mx-auto">
-              Manage your business details, branch information, and contact settings for invoices.
-            </p>
-            <Button variant="outline" className="rounded-xl mt-4">
-              Edit Business Info
-              <ArrowRight size={18} className="ml-2" />
-            </Button>
-          </div>
+          <CompanySettings />
         </TabsContent>
 
         <TabsContent value="security" className="mt-0">
-          <div className="bg-surface p-12 rounded-[40px] border border-navy/10 shadow-soft text-center space-y-4">
-            <div className="w-20 h-20 bg-navy/5 rounded-3xl flex items-center justify-center text-navy/20 mx-auto">
-              <Shield size={40} />
-            </div>
-            <h2 className="text-2xl font-bold text-navy">Security & Permissions</h2>
-            <p className="text-navy/50 max-w-md mx-auto">
-              Configure user roles, access levels, and terminal security protocols.
-            </p>
-          </div>
+          <UserManagement />
         </TabsContent>
 
         <TabsContent value="printing" className="mt-0">
