@@ -132,7 +132,7 @@ export const generateInvoicePDF = (data: InvoiceData, companyDetails?: CompanyDe
         tableColor: TEXT_LIGHT_BLACK,
         header: [
           { title: "#", style: { width: 10 } },
-          { title: "Description", style: { width: 85 } },
+          { title: "Description", style: { width: 105 } },
           { title: "Price", style: { width: 25 } },
           { title: "Qty", style: { width: 20 } },
           { title: "Total", style: { width: 30 } }
