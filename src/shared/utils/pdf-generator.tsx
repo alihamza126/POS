@@ -1,5 +1,6 @@
 import jsPDFInvoiceTemplate, { OutputType } from "jspdf-invoice-template-nodejs";
 import logo from "../../../assets/icon.png";
+import { APP_CONFIG } from "../constants/config";
 
 export interface CompanyDetails {
   name: string;
@@ -79,10 +80,10 @@ const safeNumber = (val: any): string => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const DEVELOPER_FOOTER = "Software Developed by AH Developer | Contact: +923037828419";
-const FOOTER_FONT_SIZE = 11;
-const PRIMARY_COLOR = "#24D4FE"; // Cyan Brand Color
-const TEXT_LIGHT_BLACK = "#374151"; // Light black / Slate 700
+const DEVELOPER_FOOTER = APP_CONFIG.developer.footerText;
+const FOOTER_FONT_SIZE = APP_CONFIG.pdf.footerFontSize;
+const PRIMARY_COLOR = APP_CONFIG.pdf.primaryColor;
+const TEXT_LIGHT_BLACK = APP_CONFIG.pdf.textColorLightBlack;
 
 export const generateInvoicePDF = (data: InvoiceData, companyDetails?: CompanyDetails) => {
   try {
@@ -103,7 +104,7 @@ export const generateInvoicePDF = (data: InvoiceData, companyDetails?: CompanyDe
         }
       },
       business: {
-        name: safeString(companyDetails?.name || "A POS").toUpperCase(),
+        name: safeString(companyDetails?.name || APP_CONFIG.defaults.companyName).toUpperCase(),
         address: safeString(companyDetails?.address),
         phone: safeString(companyDetails?.phone),
         email: safeString(companyDetails?.email),
@@ -208,7 +209,7 @@ export const generateCustomerStatementPDF = (data: CustomerStatementData) => {
         }
       },
       business: {
-        name: safeString(data.companyDetails?.name || "A POS").toUpperCase(),
+        name: safeString(data.companyDetails?.name || APP_CONFIG.defaults.companyName).toUpperCase(),
         address: safeString(data.companyDetails?.address),
         phone: safeString(data.companyDetails?.phone),
         email: safeString(data.companyDetails?.email),
@@ -283,5 +284,124 @@ export const generateCustomerStatementPDF = (data: CustomerStatementData) => {
     jsPDFInvoiceTemplate(props);
   } catch (err) {
     console.error("Statement PDF Error:", err);
+  }
+};
+
+export interface SupplierStatementData {
+  companyName: string;
+  contactPerson?: string;
+  phone?: string;
+  address?: string;
+  ledger: LedgerEntry[];
+  summary: {
+    currentBalance: number;
+    totalPurchases: number;
+    totalPayments: number;
+  };
+  companyDetails?: CompanyDetails;
+}
+
+export const generateSupplierStatementPDF = (data: SupplierStatementData) => {
+  try {
+    const totalDebit = data.ledger.reduce((sum, entry) => sum + (entry.debit || 0), 0);
+    const totalCredit = data.ledger.reduce((sum, entry) => sum + (entry.credit || 0), 0);
+
+    const sortedLedger = [...data.ledger].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const cleanCompName = safeString(data.companyName).trim();
+
+    const props: any = {
+      outputType: OutputType.Save,
+      returnJsPDFDocObject: true,
+      fileName: `${cleanCompName}_Statement`,
+      orientationLandscape: false,
+      compress: true,
+      logo: {
+        src: logo,
+        type: 'PNG',
+        width: 30,
+        height: 30,
+        margin: {
+          top: 0,
+          left: 0
+        }
+      },
+      business: {
+        name: safeString(data.companyDetails?.name || APP_CONFIG.defaults.companyName).toUpperCase(),
+        address: safeString(data.companyDetails?.address),
+        phone: safeString(data.companyDetails?.phone),
+        email: safeString(data.companyDetails?.email),
+        email_1: " ",
+        website: " ",
+      },
+      contact: {
+        label: "Supplier Details:",
+        name: cleanCompName,
+        address: safeString(data.address),
+        phone: safeString(data.phone),
+        email: data.contactPerson ? `Contact Person: ${safeString(data.contactPerson)}` : " ",
+        otherInfo: " ",
+      },
+      invoice: {
+        label: "SUPPLIER STATEMENT",
+        num: " ",
+        invDate: `Period End: ${safeString(new Date().toLocaleDateString())}`,
+        invGenDate: `Generated: ${safeString(new Date().toLocaleDateString())}`,
+        headerBorder: true,
+        tableBodyBorder: true,
+        headerBackgroundColor: PRIMARY_COLOR,
+        headerColor: "#FFFFFF",
+        tableColor: TEXT_LIGHT_BLACK,
+        header: [
+          { title: "Date", style: { width: 25 } },
+          { title: "Type", style: { width: 25 } },
+          { title: "Remarks", style: { width: 65 } },
+          { title: "Debit (Purch)", style: { width: 25 } },
+          { title: "Credit (Paid)", style: { width: 25 } },
+          { title: "Balance", style: { width: 25 } }
+        ],
+        table: sortedLedger.map((entry) => [
+          safeString(new Date(entry.date).toLocaleDateString()),
+          safeString(entry.type).toUpperCase(),
+          cleanMemo(entry.memo, entry.type) + "\n ",
+          safeNumber(entry.debit || 0),
+          safeNumber(entry.credit || 0),
+          safeNumber(entry.balance)
+        ]),
+        additionalRows: [
+          {
+            col1: 'Total Debit (Purchases):',
+            col2: safeNumber(totalDebit),
+            col3: ' ',
+            style: { fontSize: FOOTER_FONT_SIZE, color: TEXT_LIGHT_BLACK }
+          },
+          {
+            col1: 'Total Credit (Payments):',
+            col2: safeNumber(totalCredit),
+            col3: ' ',
+            style: { fontSize: FOOTER_FONT_SIZE, color: TEXT_LIGHT_BLACK }
+          },
+          {
+            col1: 'NET OUTSTANDING DUE:',
+            col2: safeNumber(data.summary.currentBalance),
+            col3: ' ',
+            style: { fontSize: FOOTER_FONT_SIZE + 1, color: TEXT_LIGHT_BLACK, fontWeight: 'bold' }
+          }
+        ],
+        invDescLabel: "Account Summary",
+        invDesc: `Cumulative ledger activity for ${cleanCompName}.\nOutstanding liability: Rs. ${data.summary.currentBalance.toLocaleString()}`,
+      },
+      footer: {
+        text: DEVELOPER_FOOTER,
+      },
+      pageEnable: true,
+      pageLabel: "Page ",
+    };
+
+    jsPDFInvoiceTemplate(props);
+  } catch (err) {
+    console.error("Supplier Statement PDF Error:", err);
   }
 };

@@ -23,6 +23,7 @@ import { Label } from '../../../components/ui/label';
 import { Button } from '../../../components/ui/button';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuthStore } from '../../../stores/auth-store';
+import { APP_CONFIG } from '../../../shared/constants/config';
 import SearchableSelect from '../../../components/ui/searchable-select';
 import { useProducts } from '../hooks/use-products';
 
@@ -107,7 +108,7 @@ export default function AdjustStockDialog({
         type: data.type,
         reason: data.reason,
         userId: user?.id || 'system',
-        branchId: 'BR-01',
+        branchId: APP_CONFIG.branch.defaultId,
       });
 
       toast({

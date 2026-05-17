@@ -11,6 +11,7 @@ import {
 import { Button } from '../../../components/ui/button';
 import { useAuthStore } from '../../../stores/auth-store';
 import { useToast } from '../../../hooks/use-toast';
+import { APP_CONFIG } from '../../../shared/constants/config';
 import { FileUp, AlertCircle, CheckCircle2, Loader2, Download } from 'lucide-react';
 
 interface ImportProductsDialogProps {
@@ -53,7 +54,7 @@ export default function ImportProductsDialog({
           const response = await window.api.products.importBulk({
             products: parseResults.data,
             userId: user.id,
-            branchId: 'BR-01', // Default branch
+            branchId: APP_CONFIG.branch.defaultId, // Default branch
           });
 
           setResults(response);

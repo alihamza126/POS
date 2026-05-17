@@ -11,6 +11,8 @@ import ProductDetailsPage from '../features/products/pages/ProductDetailsPage';
 import AuditLogPage from '../features/audit/pages/AuditLogPage';
 import CustomerListPage from '../features/customers/pages/CustomerListPage';
 import CustomerDetailsPage from '../features/customers/pages/CustomerDetailsPage';
+import SupplierListPage from '../features/suppliers/pages/SupplierListPage';
+import SupplierDetailsPage from '../features/suppliers/pages/SupplierDetailsPage';
 import POSPage from '../features/sales/pages/POSPage';
 import SalesHistoryPage from '../features/sales/pages/SalesHistoryPage';
 import CategoryListPage from '../features/categories/pages/CategoryListPage';
@@ -18,24 +20,7 @@ import SettingsPage from '../features/settings/pages/SettingsPage';
 
 import { Toaster } from '../components/ui/toaster';
 import GlobalCloseDialog from '../components/shared/GlobalCloseDialog';
-
-function Dashboard() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-secondary">Dashboard Overview</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="bg-surface p-6 rounded-2xl shadow-soft border border-navy/20 h-32 flex items-center justify-center"
-          >
-            <p className="text-text-secondary font-medium">Metric Card {i}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import DashboardPage from '../features/dashboard/pages/DashboardPage';
 
 export default function App() {
   return (
@@ -57,7 +42,7 @@ export default function App() {
             <ProtectedRoute>
               <MainLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<DashboardPage />} />
                   <Route path="/inventory" element={<ProductListPage />} />
                   <Route
                     path="/inventory/:id"
@@ -70,6 +55,11 @@ export default function App() {
                   <Route
                     path="/customers/:id"
                     element={<CustomerDetailsPage />}
+                  />
+                  <Route path="/suppliers" element={<SupplierListPage />} />
+                  <Route
+                    path="/suppliers/:id"
+                    element={<SupplierDetailsPage />}
                   />
                   <Route
                     path="/settings"

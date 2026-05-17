@@ -83,6 +83,41 @@ const categoryHandler = {
     ipcRenderer.invoke('categories:delete', { id, userId }),
 };
 
+const supplierHandler = {
+  list: (filters: any) => ipcRenderer.invoke('suppliers:list', filters),
+  get: (id: string) => ipcRenderer.invoke('suppliers:get', id),
+  create: (data: any, userId: string) =>
+    ipcRenderer.invoke('suppliers:create', { data, userId }),
+  update: (id: string, data: any, userId: string) =>
+    ipcRenderer.invoke('suppliers:update', { id, data, userId }),
+  delete: (id: string, userId: string) =>
+    ipcRenderer.invoke('suppliers:delete', { id, userId }),
+  getLedger: (supplierId: string) =>
+    ipcRenderer.invoke('suppliers:get-ledger', supplierId),
+  getSummary: (supplierId: string) =>
+    ipcRenderer.invoke('suppliers:get-summary', supplierId),
+  createPurchaseInvoice: (
+    invoiceData: any,
+    items: any[],
+    userId: string,
+    branchId: string,
+    deviceId: string,
+  ) =>
+    ipcRenderer.invoke('suppliers:create-purchase-invoice', {
+      invoiceData,
+      items,
+      userId,
+      branchId,
+      deviceId,
+    }),
+  getPurchaseInvoices: (supplierId: string) =>
+    ipcRenderer.invoke('suppliers:get-purchase-invoices', supplierId),
+  recordPayment: (data: any, userId: string) =>
+    ipcRenderer.invoke('suppliers:record-payment', { data, userId }),
+  getPayments: (supplierId: string) =>
+    ipcRenderer.invoke('suppliers:get-payments', supplierId),
+};
+
 const windowHandler = {
   toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
   onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
@@ -107,6 +142,7 @@ contextBridge.exposeInMainWorld('api', {
   customers: customerHandler,
   sales: salesHandler,
   categories: categoryHandler,
+  suppliers: supplierHandler,
   window: windowHandler,
 });
 
@@ -119,5 +155,6 @@ export type ApiHandler = {
   customers: typeof customerHandler;
   sales: typeof salesHandler;
   categories: typeof categoryHandler;
+  suppliers: typeof supplierHandler;
   window: typeof windowHandler;
 };

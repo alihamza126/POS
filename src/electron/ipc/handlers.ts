@@ -7,6 +7,8 @@ import { PaymentService } from '../../features/customers/services/payment-servic
 import { LedgerService } from '../../features/customers/services/ledger-service';
 import { SalesService } from '../../features/sales/services/sales-service';
 import { CategoryService } from '../../features/categories/services/category-service';
+import { SupplierService } from '../../features/suppliers/services/supplier-service';
+import { SupplierLedgerService } from '../../features/suppliers/services/supplier-ledger-service';
 import { syncService } from '../../sync/services/sync-service';
 import { syncWorker } from '../../main/sync-worker';
 
@@ -180,6 +182,63 @@ export function setupIpcHandlers() {
 
   ipcMain.handle('categories:delete', async (_event, { id, userId }) => {
     return CategoryService.deleteCategory(id, userId);
+  });
+
+  // Supplier Handlers
+  ipcMain.handle('suppliers:list', async (_event, filters) => {
+    return SupplierService.getSuppliers(filters);
+  });
+
+  ipcMain.handle('suppliers:get', async (_event, id) => {
+    return SupplierService.getSupplier(id);
+  });
+
+  ipcMain.handle('suppliers:create', async (_event, { data, userId }) => {
+    return SupplierService.createSupplier(data, userId);
+  });
+
+  ipcMain.handle('suppliers:update', async (_event, { id, data, userId }) => {
+    return SupplierService.updateSupplier(id, data, userId);
+  });
+
+  ipcMain.handle('suppliers:delete', async (_event, { id, userId }) => {
+    return SupplierService.deleteSupplier(id, userId);
+  });
+
+  ipcMain.handle('suppliers:get-ledger', async (_event, supplierId) => {
+    return SupplierLedgerService.getSupplierLedger(supplierId);
+  });
+
+  ipcMain.handle('suppliers:get-summary', async (_event, supplierId) => {
+    return SupplierLedgerService.getSupplierSummary(supplierId);
+  });
+
+  ipcMain.handle(
+    'suppliers:create-purchase-invoice',
+    async (_event, { invoiceData, items, userId, branchId, deviceId }) => {
+      return SupplierService.createPurchaseInvoice(
+        invoiceData,
+        items,
+        userId,
+        branchId,
+        deviceId,
+      );
+    },
+  );
+
+  ipcMain.handle('suppliers:get-purchase-invoices', async (_event, supplierId) => {
+    return SupplierService.getPurchaseInvoices(supplierId);
+  });
+
+  ipcMain.handle(
+    'suppliers:record-payment',
+    async (_event, { data, userId }) => {
+      return SupplierService.recordPayment(data, userId);
+    },
+  );
+
+  ipcMain.handle('suppliers:get-payments', async (_event, supplierId) => {
+    return SupplierService.getPayments(supplierId);
   });
 }
 

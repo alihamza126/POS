@@ -9,6 +9,7 @@ import {
   History,
   FileText,
   FolderOpen,
+  Building,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../shared/utils';
@@ -21,6 +22,7 @@ const navItems = [
   { icon: Package, label: 'Inventory', path: '/inventory' },
   { icon: FolderOpen, label: 'Categories', path: '/categories' },
   { icon: Users, label: 'Customers', path: '/customers' },
+  { icon: Building, label: 'Suppliers', path: '/suppliers' },
   { icon: History, label: 'Audit Log', path: '/audit' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];

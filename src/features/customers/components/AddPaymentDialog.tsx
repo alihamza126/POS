@@ -14,6 +14,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuthStore } from '../../../stores/auth-store';
+import { APP_CONFIG } from '../../../shared/constants/config';
 import {
   DollarSign,
   CreditCard,
@@ -81,7 +82,7 @@ export default function AddPaymentDialog({
     try {
       // @ts-ignore
       await window.api.customers.recordPayment(
-        { ...data, branchId: 'BR-01' },
+        { ...data, branchId: APP_CONFIG.branch.defaultId },
         user?.id,
       );
 

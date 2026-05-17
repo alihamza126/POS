@@ -1,5 +1,6 @@
 import { AuditService } from '../../audit/services/audit-service';
 import { UserRepository } from '../repositories/user-repository';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 export interface UserSession {
   id: string;
@@ -38,13 +39,13 @@ export class AuthService {
         id: userRecord.id,
         name: userRecord.username,
         role: userRecord.role,
-        branchId: 'BR-01', // Default branch for now
+        branchId: APP_CONFIG.branch.defaultId, // Default branch from config
       };
 
       // Log the login event
       await AuditService.log({
         userId: user.id,
-        deviceId: 'DEV-01',
+        deviceId: APP_CONFIG.branch.defaultDeviceId,
         branchId: user.branchId,
         action: 'AUTH_LOGIN',
         entity: 'user',
@@ -66,7 +67,7 @@ export class AuthService {
   static async logout(userId: string, branchId: string): Promise<void> {
     await AuditService.log({
       userId,
-      deviceId: 'DEV-01',
+      deviceId: APP_CONFIG.branch.defaultDeviceId,
       branchId,
       action: 'AUTH_LOGOUT',
       entity: 'user',

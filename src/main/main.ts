@@ -1,6 +1,10 @@
 /* eslint global-require: off, no-console: off, promise/always-return: off */
 require('dotenv').config();
 
+if (process.env.NODE_ENV === 'development') {
+  process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+}
+
 /**
  * This module executes inside of electron's main process. You can start
  * electron renderer process from here and communicate with the other processes
@@ -83,7 +87,7 @@ const installExtensions = async () => {
 };
 
 const createWindow = async () => {
-  if (isDebug) {
+  if (isDebug && process.env.LOAD_DEVTOOLS === 'true') {
     await installExtensions();
   }
 

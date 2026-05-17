@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../../stores/auth-store';
 import { APP_CONFIG } from '../../../shared/constants/config';
 
-export function useCustomers(initialFilters = {}) {
-  const [customers, setCustomers] = useState<any[]>([]);
+export function useSuppliers(initialFilters = {}) {
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<any>({
@@ -17,27 +17,27 @@ export function useCustomers(initialFilters = {}) {
 
   const { user } = useAuthStore();
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchSuppliers = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       // @ts-ignore
-      const result = await window.api.customers.list({
+      const result = await window.api.suppliers.list({
         ...filters,
         branchId: APP_CONFIG.branch.defaultId,
       });
-      setCustomers(result.items);
+      setSuppliers(result.items);
       setTotal(result.total);
     } catch (error) {
-      console.error('Failed to fetch customers:', error);
+      console.error('Failed to fetch suppliers:', error);
     } finally {
       setLoading(false);
     }
   }, [filters, user]);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchSuppliers();
+  }, [fetchSuppliers]);
 
   const updateFilters = (newFilters: any) => {
     setFilters((prev: any) => ({ ...prev, ...newFilters, offset: 0 }));
@@ -51,12 +51,12 @@ export function useCustomers(initialFilters = {}) {
   };
 
   return {
-    customers,
+    suppliers,
     total,
     loading,
     filters,
     updateFilters,
     setPage,
-    refresh: fetchCustomers,
+    refresh: fetchSuppliers,
   };
 }

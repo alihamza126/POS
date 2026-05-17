@@ -9,6 +9,7 @@ import * as auditSchema from '../schema/audit';
 import * as syncSchema from '../schema/sync';
 import * as customersSchema from '../schema/customers';
 import * as categoriesSchema from '../schema/categories';
+import * as suppliersSchema from '../schema/suppliers';
 
 const schema = {
   ...authSchema,
@@ -18,6 +19,7 @@ const schema = {
   ...syncSchema,
   ...customersSchema,
   ...categoriesSchema,
+  ...suppliersSchema,
 };
 
 // Ensure this runs only in the main process or during testing

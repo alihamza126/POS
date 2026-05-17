@@ -23,22 +23,23 @@ import {
   Building,
   FileText,
   AlertTriangle,
+  Receipt,
 } from 'lucide-react';
-import { customerSchema, CustomerFormValues } from '../schemas/customer-schema';
+import { supplierSchema, SupplierFormValues } from '../schemas/supplier-schema';
 
-interface AddCustomerDialogProps {
+interface AddSupplierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  customer?: any;
+  supplier?: any;
 }
 
-export default function AddCustomerDialog({
+export default function AddSupplierDialog({
   open,
   onOpenChange,
   onSuccess,
-  customer,
-}: AddCustomerDialogProps) {
+  supplier,
+}: AddSupplierDialogProps) {
   const { user } = useAuthStore();
   const { toast } = useToast();
 
@@ -47,57 +48,63 @@ export default function AddCustomerDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema),
-    defaultValues: customer || {
-      name: '',
+  } = useForm<SupplierFormValues>({
+    resolver: zodResolver(supplierSchema),
+    defaultValues: supplier || {
+      companyName: '',
+      contactPerson: '',
       phone: '',
       email: '',
       address: '',
-      companyName: '',
+      ntn: '',
       notes: '',
     },
   });
 
   React.useEffect(() => {
-    if (customer) {
-      reset(customer);
+    if (supplier) {
+      reset(supplier);
     } else {
       reset({
-        name: '',
+        companyName: '',
+        contactPerson: '',
         phone: '',
         email: '',
         address: '',
-        companyName: '',
+        ntn: '',
         notes: '',
       });
     }
-  }, [customer, reset]);
+  }, [supplier, reset]);
 
-  const onSubmit = async (data: CustomerFormValues) => {
+  const onSubmit = async (data: SupplierFormValues) => {
     try {
-      if (customer) {
+      const payload = {
+        ...data,
+        name: data.companyName, // Derive name from companyName to satisfy SQLite database NOT NULL constraint
+        branchId: APP_CONFIG.branch.defaultId,
+      };
+
+      if (supplier) {
         // @ts-ignore
-        await window.api.customers.update(
-          customer.id,
-          { ...data, branchId: APP_CONFIG.branch.defaultId },
+        await window.api.suppliers.update(
+          supplier.id,
+          payload,
           user?.id,
         );
         toast({
-          title: 'Customer Updated',
-          description: `${data.name} details have been successfully updated.`,
-          variant: 'success',
+          title: 'Supplier Updated',
+          description: `${data.companyName} details have been successfully updated.`,
         });
       } else {
         // @ts-ignore
-        await window.api.customers.create(
-          { ...data, branchId: APP_CONFIG.branch.defaultId },
+        await window.api.suppliers.create(
+          payload,
           user?.id,
         );
         toast({
-          title: 'Customer Created',
-          description: `${data.name} has been added successfully.`,
-          variant: 'success',
+          title: 'Supplier Created',
+          description: `${data.companyName} has been added successfully.`,
         });
       }
       onSuccess();
@@ -107,7 +114,7 @@ export default function AddCustomerDialog({
       console.error('Submission failed:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save customer. Please try again.',
+        description: 'Failed to save supplier. Please try again.',
         variant: 'destructive',
       });
     }
@@ -118,20 +125,20 @@ export default function AddCustomerDialog({
       <DialogContent className="sm:max-w-[500px] rounded-2xl p-0 overflow-hidden border-none shadow-xl">
         <DialogHeader className="p-8 bg-navy text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
-            <User size={120} />
+            <Building size={120} />
           </div>
           <div className="relative z-10 flex items-center gap-4">
             <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30">
-              <User size={24} className="text-primary" />
+              <Building size={24} className="text-primary" />
             </div>
             <div>
               <DialogTitle className="text-2xl font-black tracking-tight">
-                {customer ? 'Edit Customer' : 'Add New Customer'}
+                {supplier ? 'Edit Supplier' : 'Add New Supplier'}
               </DialogTitle>
               <DialogDescription className="text-white/60 font-medium">
-                {customer
-                  ? 'Update the details of your existing customer.'
-                  : 'Enter the details for your new customer.'}
+                {supplier
+                  ? 'Update the details of your existing supplier.'
+                  : 'Enter the details for your new supplier.'}
               </DialogDescription>
             </div>
           </div>
@@ -141,27 +148,49 @@ export default function AddCustomerDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label
-                htmlFor="name"
+                htmlFor="companyName"
                 className="text-sm font-bold text-navy flex items-center gap-2"
               >
-                <User size={14} className="text-primary" />
-                Full Name
+                <Building size={14} className="text-primary" />
+                Company / Supplier Name
               </Label>
               <Input
-                id="name"
+                id="companyName"
                 className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
-                placeholder="e.g. John Doe"
-                {...register('name')}
+                placeholder="e.g. Kcar Spareparts"
+                {...register('companyName')}
               />
-              {errors.name && (
+              {errors.companyName && (
                 <p className="text-xs text-destructive font-bold flex items-center gap-1">
                   <AlertTriangle size={12} />
-                  {errors.name.message}
+                  {errors.companyName.message}
                 </p>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="contactPerson"
+                  className="text-sm font-bold text-navy flex items-center gap-2"
+                >
+                  <User size={14} className="text-primary" />
+                  Contact Person
+                </Label>
+                <Input
+                  id="contactPerson"
+                  className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
+                  placeholder="e.g. Mr. Hamza"
+                  {...register('contactPerson')}
+                />
+                {errors.contactPerson && (
+                  <p className="text-xs text-destructive font-bold flex items-center gap-1">
+                    <AlertTriangle size={12} />
+                    {errors.contactPerson.message}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label
                   htmlFor="phone"
@@ -173,7 +202,7 @@ export default function AddCustomerDialog({
                 <Input
                   id="phone"
                   className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
-                  placeholder="03001234567"
+                  placeholder="e.g. 03001234567"
                   {...register('phone')}
                 />
                 {errors.phone && (
@@ -183,7 +212,9 @@ export default function AddCustomerDialog({
                   </p>
                 )}
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="email"
@@ -196,7 +227,7 @@ export default function AddCustomerDialog({
                   id="email"
                   type="email"
                   className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
-                  placeholder="john@example.com"
+                  placeholder="sales@kcar.com"
                   {...register('email')}
                 />
                 {errors.email && (
@@ -206,22 +237,22 @@ export default function AddCustomerDialog({
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="companyName"
-                className="text-sm font-bold text-navy flex items-center gap-2"
-              >
-                <Building size={14} className="text-primary" />
-                Company Name (Optional)
-              </Label>
-              <Input
-                id="companyName"
-                className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
-                placeholder="e.g. ABC Corp"
-                {...register('companyName')}
-              />
+              <div className="space-y-2">
+                <Label
+                  htmlFor="ntn"
+                  className="text-sm font-bold text-navy flex items-center gap-2"
+                >
+                  <Receipt size={14} className="text-primary" />
+                  NTN / Tax No (Optional)
+                </Label>
+                <Input
+                  id="ntn"
+                  className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
+                  placeholder="e.g. 1234567-8"
+                  {...register('ntn')}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -235,9 +266,15 @@ export default function AddCustomerDialog({
               <Input
                 id="address"
                 className="h-12 rounded-xl bg-background/50 border-navy/20 focus:border-primary transition-all text-base px-4"
-                placeholder="e.g. 123 Main St, City"
+                placeholder="e.g. Workshop Area, Lahore"
                 {...register('address')}
               />
+              {errors.address && (
+                <p className="text-xs text-destructive font-bold flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  {errors.address.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -251,7 +288,7 @@ export default function AddCustomerDialog({
               <textarea
                 id="notes"
                 className="w-full min-h-[80px] rounded-xl bg-background/50 border border-navy/20 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base px-4 py-3 outline-none"
-                placeholder="Any special instructions or notes..."
+                placeholder="Any special instructions, terms, or bank accounts..."
                 {...register('notes')}
               />
             </div>
@@ -273,9 +310,9 @@ export default function AddCustomerDialog({
             >
               {isSubmitting
                 ? 'Saving...'
-                : customer
-                  ? 'Update Customer'
-                  : 'Add Customer'}
+                : supplier
+                  ? 'Update Supplier'
+                  : 'Add Supplier'}
             </Button>
           </DialogFooter>
         </form>

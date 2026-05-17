@@ -43,19 +43,19 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
-interface ReceivePaymentDialogProps {
+interface RecordPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  customerId: string;
+  supplierId: string;
   onSuccess: () => void;
 }
 
-export default function ReceivePaymentDialog({
+export default function RecordPaymentDialog({
   open,
   onOpenChange,
-  customerId,
+  supplierId,
   onSuccess,
-}: ReceivePaymentDialogProps) {
+}: RecordPaymentDialogProps) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,6 @@ export default function ReceivePaymentDialog({
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
 
-    // Remove leading zeros
     if (value.length > 1 && value.startsWith('0') && !value.startsWith('0.')) {
       value = value.replace(/^0+/, '') || '0';
     }
@@ -97,17 +96,17 @@ export default function ReceivePaymentDialog({
       setLoading(true);
       setError(null);
 
-      if (!customerId) {
-        setError('No customer selected.');
+      if (!supplierId) {
+        setError('No supplier selected.');
         return;
       }
 
-      console.log('Submitting payment for customer:', customerId);
+      console.log('Submitting payment for supplier:', supplierId);
 
       // @ts-ignore
-      await window.api.customers.recordPayment(
+      await window.api.suppliers.recordPayment(
         {
-          customerId,
+          supplierId,
           amount: values.amount,
           paymentMethod:
             values.paymentMethod === 'transfer'
@@ -122,6 +121,7 @@ export default function ReceivePaymentDialog({
         user?.id || 'system',
       );
 
+      // Play premium sound effect
       audioService.playSuccess();
       reset();
       onSuccess();
@@ -141,7 +141,7 @@ export default function ReceivePaymentDialog({
             <Banknote size={24} className="text-primary" />
           </div>
           <DialogTitle className="text-2xl font-black text-navy">
-            Receive Payment
+            Record Outgoing Payment
           </DialogTitle>
         </DialogHeader>
 
@@ -152,13 +152,12 @@ export default function ReceivePaymentDialog({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-8">
-            <Label className="font-bold text-navy ">Amount (Rs.)</Label>
+          <div className="space-y-2">
+            <Label className="font-bold text-navy">Amount (Rs.)</Label>
             <Input
               type="number"
               placeholder="0.00"
               className="h-12 rounded-2xl pt-2 bg-navy/5 border-transparent focus:bg-white text-xl font-black focus:ring-primary focus:border-primary transition-all"
-              // eslint-disable-next-line react/jsx-props-no-spreading
               {...register('amount')}
               onChange={handleAmountChange}
             />
@@ -219,7 +218,7 @@ export default function ReceivePaymentDialog({
 
           {paymentMethod === 'transfer' && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <Label className="font-bold text-navy">Select Bank / Local Method</Label>
+              <Label className="font-bold text-navy">Select Bank / Wallet</Label>
               <Controller
                 name="bankName"
                 control={control}
@@ -251,7 +250,6 @@ export default function ReceivePaymentDialog({
             <Input
               placeholder="e.g. TRX-12345"
               className="h-14 rounded-2xl bg-navy/5 border-transparent focus:bg-white"
-              // eslint-disable-next-line react/jsx-props-no-spreading
               {...register('referenceNo')}
             />
           </div>
@@ -261,7 +259,6 @@ export default function ReceivePaymentDialog({
             <textarea
               placeholder="Any additional details..."
               className="w-full min-h-[80px] p-4 text-sm resize-none rounded-2xl bg-navy/5 border border-transparent focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-              // eslint-disable-next-line react/jsx-props-no-spreading
               {...register('note')}
             />
           </div>

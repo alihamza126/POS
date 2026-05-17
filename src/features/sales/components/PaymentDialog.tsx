@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../stores/auth-store';
 import { generateInvoicePDF } from '../../../shared/utils/pdf-generator';
 import { useSettingsStore } from '../../../stores/settings-store';
 import { audioService } from '../../../shared/utils/audio';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -73,8 +74,8 @@ export default function PaymentDialog({
         bankName: paymentMethod === 'transfer' ? bankName : undefined,
         paidAmount: isCreditSale ? 0 : amountTendered,
         userId: user?.id || 'system',
-        branchId: 'BR-01',
-        deviceId: 'local',
+        branchId: APP_CONFIG.branch.defaultId,
+        deviceId: APP_CONFIG.branch.defaultDeviceId,
       });
 
       audioService.playSuccess();

@@ -17,6 +17,7 @@ import ProductGrid from '../components/ProductGrid';
 import CartPanel from '../components/CartPanel';
 import { usePOSStore } from '../../../stores/pos-store';
 import { useAuthStore } from '../../../stores/auth-store';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 export default function POSPage() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function POSPage() {
     const loadCats = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('BR-01');
+        const cats = await window.api.categories.list(APP_CONFIG.branch.defaultId);
         setCategoryList(cats || []);
       } catch {
         // silently fail
@@ -66,7 +67,7 @@ export default function POSPage() {
       setLoadingProducts(true);
       // @ts-ignore
       const result = await window.api.products.list({
-        branchId: 'BR-01',
+        branchId: APP_CONFIG.branch.defaultId,
         query: searchQuery || undefined,
         limit: 100,
       });
@@ -94,7 +95,7 @@ export default function POSPage() {
   const fetchDailySummary = useCallback(async () => {
     try {
       // @ts-ignore
-      const summary = await window.api.sales.getDailySummary('BR-01');
+      const summary = await window.api.sales.getDailySummary(APP_CONFIG.branch.defaultId);
       setDailySummary(summary);
     } catch {
       // Silently fail — status bar is non-critical

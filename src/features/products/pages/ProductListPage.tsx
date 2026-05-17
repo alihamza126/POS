@@ -40,6 +40,7 @@ import ImportProductsDialog from '../components/ImportProductsDialog';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../hooks/use-toast';
 import { cn } from '../../../shared/utils';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 export default function ProductListPage() {
   const { products, loading, filters, updateFilters, total, setPage, refresh } =
@@ -64,7 +65,7 @@ export default function ProductListPage() {
     const loadCats = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('BR-01');
+        const cats = await window.api.categories.list(APP_CONFIG.branch.defaultId);
         setCategoryList(cats || []);
       } catch {
         // silently fail

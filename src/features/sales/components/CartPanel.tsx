@@ -15,6 +15,7 @@ import SearchableSelect, {
 import { usePOSStore, PaymentMethod } from '../../../stores/pos-store';
 import { PAKISTANI_BANKS } from '../../../shared/constants/banks';
 import PaymentDialog from './PaymentDialog';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 interface CartPanelProps {
   onSaleComplete: () => void;
@@ -67,7 +68,7 @@ export default function CartPanel({ onSaleComplete }: CartPanelProps) {
       try {
         // @ts-ignore
         const result = await window.api.customers.list({
-          branchId: 'BR-01',
+          branchId: APP_CONFIG.branch.defaultId,
           limit: 500,
         });
         const fetchedItems = result.items || [];

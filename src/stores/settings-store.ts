@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { APP_CONFIG } from '../shared/constants/config';
 
 export interface CompanySettings {
   name: string;
@@ -16,9 +17,9 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       company: {
-        name: 'A POS',
-        address: 'Faqirwali Main Road, Haroonabad',
-        phone: '+92 300 1234567',
+        name: APP_CONFIG.defaults.companyName,
+        address: APP_CONFIG.defaults.companyAddress,
+        phone: APP_CONFIG.defaults.companyPhone,
       },
       setCompanyDetails: (details) => set({ company: details }),
     }),

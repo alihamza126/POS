@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../../stores/auth-store';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 export function useProducts(initialFilters = {}) {
   const [products, setProducts] = useState<any[]>([]);
@@ -23,7 +24,7 @@ export function useProducts(initialFilters = {}) {
       // @ts-ignore
       const result = await window.api.products.list({
         ...filters,
-        branchId: 'BR-01', // Default for now
+        branchId: APP_CONFIG.branch.defaultId, // Default for now
       });
       setProducts(result.items);
       setTotal(result.total);

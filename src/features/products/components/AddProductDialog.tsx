@@ -16,6 +16,7 @@ import { Label } from '../../../components/ui/label';
 import SearchableSelect from '../../../components/ui/searchable-select';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuthStore } from '../../../stores/auth-store';
+import { APP_CONFIG } from '../../../shared/constants/config';
 import {
   Package,
   Tag,
@@ -83,7 +84,7 @@ export default function AddProductDialog({
     const loadCategories = async () => {
       try {
         // @ts-ignore
-        const cats = await window.api.categories.list('BR-01');
+        const cats = await window.api.categories.list(APP_CONFIG.branch.defaultId);
         setCategoryList(cats || []);
       } catch {
         // Categories are optional — fail silently
@@ -143,7 +144,7 @@ export default function AddProductDialog({
         // @ts-ignore
         await window.api.products.update(
           product.id,
-          { ...data, branchId: 'BR-01' },
+          { ...data, branchId: APP_CONFIG.branch.defaultId },
           user?.id,
         );
         toast({
@@ -154,7 +155,7 @@ export default function AddProductDialog({
       } else {
         // @ts-ignore
         await window.api.products.create(
-          { ...data, branchId: 'BR-01' },
+          { ...data, branchId: APP_CONFIG.branch.defaultId },
           user?.id,
         );
         toast({

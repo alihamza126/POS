@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Search, FileText, XCircle, Eye, Ban } from 'lucide-react';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 export default function SalesHistoryPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -17,7 +18,7 @@ export default function SalesHistoryPage() {
       setLoading(true);
       // @ts-ignore
       const result = await window.api.sales.list({
-        branchId: 'BR-01',
+        branchId: APP_CONFIG.branch.defaultId,
         query: searchQuery || undefined,
         status: statusFilter || undefined,
         paymentStatus: paymentStatusFilter || undefined,
@@ -52,7 +53,7 @@ export default function SalesHistoryPage() {
   const cancelInvoice = async (id: string) => {
     try {
       // @ts-ignore
-      await window.api.sales.cancel(id, 'system', 'BR-01', 'local');
+      await window.api.sales.cancel(id, 'system', APP_CONFIG.branch.defaultId, APP_CONFIG.branch.defaultDeviceId);
       fetchInvoices();
       setSelectedInvoice(null);
     } catch (error: any) {

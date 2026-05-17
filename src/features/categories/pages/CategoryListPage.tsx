@@ -6,6 +6,7 @@ import { Card } from '../../../components/ui/card';
 import { useAuthStore } from '../../../stores/auth-store';
 import { useToast } from '../../../hooks/use-toast';
 import { cn } from '../../../shared/utils';
+import { APP_CONFIG } from '../../../shared/constants/config';
 
 interface Category {
   id: string;
@@ -35,7 +36,7 @@ export default function CategoryListPage() {
     try {
       setLoading(true);
       // @ts-ignore
-      const result = await window.api.categories.list('BR-01');
+      const result = await window.api.categories.list(APP_CONFIG.branch.defaultId);
       setCategories(result || []);
     } catch {
       toast({
@@ -61,7 +62,7 @@ export default function CategoryListPage() {
         {
           name: newName.trim(),
           description: newDescription.trim() || null,
-          branchId: 'BR-01',
+          branchId: APP_CONFIG.branch.defaultId,
         },
         user?.id,
       );
