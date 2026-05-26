@@ -207,7 +207,7 @@
     "appId": "com.ahsolutions.apos",
     "asar": true,
     "afterSign": ".erb/scripts/notarize.js",
-    "asarUnpack": "**\\*.{node,dll}",
+    "asarUnpack": "**/*.{node,dll}",
     "files": [
       "dist",
       "node_modules",
@@ -259,7 +259,12 @@
       "output": "release/build"
     },
     "extraResources": [
-      "./assets/**"
+      "./assets/**",
+      {
+        "from": "src/database/migrations",
+        "to": "migrations",
+        "filter": ["**/*"]
+      }
     ],
     "publish": {
       "provider": "github",
