@@ -107,6 +107,65 @@ export class PurchaseInvoiceRepository {
     return { ...invoice, items: insertedItems };
   }
 
+  /**
+   * Creates a simple purchase entry without a full item breakdown.
+   * Used for quick ledger entries (just amount + date + memo).
+   * No stock movements are created — purely financial tracking.
+   */
+  static async createSimple(data: {
+    supplierId: string;
+    amount: number;
+    purchaseDate?: string;
+    invoiceNumber?: string;
+    paymentType: string;
+    memo?: string;
+    userId: string;
+    branchId: string;
+    deviceId: string;
+  }) {
+    const invoiceId = uuidv4();
+    const invoiceNumber =
+      data.invoiceNumber || `PUR-${Date.now().toString().slice(-6)}`;
+
+    // For simple purchases, amount = totalAmount = payableAmount
+    // If not credit, paidAmount = amount (paid on the spot)
+    const isCredit = data.paymentType === 'credit';
+    const paidAmount = isCredit ? 0 : data.amount;
+    const paymentStatus: 'unpaid' | 'partial' | 'paid' = isCredit ? 'unpaid' : 'paid';
+
+    const invoice = db
+      .insert(purchaseInvoices)
+      .values({
+        id: invoiceId,
+        invoiceNumber,
+        supplierId: data.supplierId,
+        totalAmount: data.amount,
+        discountAmount: 0,
+        taxAmount: 0,
+        payableAmount: data.amount,
+        paidAmount,
+        paymentStatus,
+        paymentType: data.paymentType || 'credit',
+        status: 'active',
+        memo: data.memo || null,
+        userId: data.userId,
+        branchId: data.branchId,
+        deviceId: data.deviceId,
+        purchaseDate: data.purchaseDate || null,
+      })
+      .returning()
+      .get();
+
+    // No stock movements for simple purchase entries (no product linkage)
+
+    // Add to sync queue
+    syncService
+      .addToQueue('purchase_invoices', invoiceId, 'create', invoice)
+      .catch(console.error);
+
+    return invoice;
+  }
+
   static async findById(id: string) {
     const invoice = db
       .select()

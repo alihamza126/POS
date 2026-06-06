@@ -28,25 +28,30 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table';
+import AddProductDialog from '../components/AddProductDialog';
+import AdjustStockDialog from '../components/AdjustStockDialog';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAdjustStockDialogOpen, setIsAdjustStockDialogOpen] = useState(false);
+
+  const fetchProduct = async () => {
+    try {
+      // @ts-ignore
+      const result = await window.api.products.get(id);
+      setProduct(result);
+    } catch (error) {
+      console.error('Failed to fetch product details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        // @ts-ignore
-        const result = await window.api.products.get(id);
-        setProduct(result);
-      } catch (error) {
-        console.error('Failed to fetch product details:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProduct();
   }, [id]);
 
@@ -109,7 +114,7 @@ export default function ProductDetailsPage() {
               Label
             </Button>
             <Button
-              onClick={() => navigate(`/inventory/edit/${id}`)}
+              onClick={() => setIsEditDialogOpen(true)}
               className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 h-12 px-8 rounded-xl font-black shadow-xl shadow-primary/30 border border-primary/20 transition-all active:scale-95"
             >
               <Edit size={18} />
@@ -275,7 +280,10 @@ export default function ProductDetailsPage() {
           </div>
 
           <div className="pt-6">
-            <Button className="w-full bg-navy hover:bg-navy/90 text-white gap-2 h-12 rounded-xl font-bold shadow-lg shadow-navy/20">
+            <Button
+              onClick={() => setIsAdjustStockDialogOpen(true)}
+              className="w-full bg-navy hover:bg-navy/90 text-white gap-2 h-12 rounded-xl font-bold shadow-lg shadow-navy/20"
+            >
               <PlusCircle size={18} />
               Adjust Stock
             </Button>
@@ -338,6 +346,24 @@ export default function ProductDetailsPage() {
           </div>
         </Card>
       </div>
+
+      <AddProductDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+        }}
+        onSuccess={fetchProduct}
+        product={product}
+      />
+
+      <AdjustStockDialog
+        product={product}
+        open={isAdjustStockDialogOpen}
+        onOpenChange={(open) => {
+          setIsAdjustStockDialogOpen(open);
+        }}
+        onSuccess={fetchProduct}
+      />
     </div>
   );
 }

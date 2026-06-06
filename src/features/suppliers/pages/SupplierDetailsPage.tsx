@@ -11,6 +11,7 @@ import {
   User,
   Receipt,
   Banknote,
+  ShoppingCart,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
@@ -18,6 +19,7 @@ import { Badge } from '../../../components/ui/badge';
 import SupplierDetailsTabs from '../components/SupplierDetailsTabs';
 import AddSupplierDialog from '../components/AddSupplierDialog';
 import RecordPaymentDialog from '../components/RecordPaymentDialog';
+import QuickPurchaseDialog from '../components/QuickPurchaseDialog';
 
 export default function SupplierDetailsPage() {
   const { id } = useParams();
@@ -26,6 +28,7 @@ export default function SupplierDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
 
   const fetchSupplier = async () => {
     try {
@@ -144,20 +147,27 @@ export default function SupplierDetailsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <Button
+              onClick={() => setIsPurchaseDialogOpen(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white border-none gap-2 h-14 px-8 rounded-2xl font-black transition-all active:scale-95 shadow-xl"
+            >
+              <ShoppingCart size={20} />
+              Add Purchase
+            </Button>
             <Button
               onClick={() => setIsPaymentDialogOpen(true)}
               className="bg-emerald-500 hover:bg-emerald-600 text-white border-none gap-2 h-14 px-8 rounded-2xl font-black transition-all active:scale-95 shadow-xl"
             >
               <Banknote size={20} />
-              Record Outgoing Payment
+              Record Payment
             </Button>
             <Button
               onClick={() => setIsEditDialogOpen(true)}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/10 gap-2 h-14 px-8 rounded-2xl font-black transition-all active:scale-95 shadow-xl"
             >
               <Edit size={20} />
-              Edit Profile
+              Edit
             </Button>
           </div>
         </div>
@@ -229,6 +239,17 @@ export default function SupplierDetailsPage() {
         onSuccess={() => {
           fetchSupplier();
           window.dispatchEvent(new Event('supplier-payment-recorded'));
+        }}
+      />
+
+      <QuickPurchaseDialog
+        open={isPurchaseDialogOpen}
+        onOpenChange={setIsPurchaseDialogOpen}
+        supplierId={id!}
+        supplierName={supplier?.companyName}
+        onSuccess={() => {
+          fetchSupplier();
+          window.dispatchEvent(new Event('purchase-invoice-recorded'));
         }}
       />
     </div>

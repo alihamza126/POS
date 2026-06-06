@@ -256,6 +256,13 @@ export function setupIpcHandlers() {
   ipcMain.handle('suppliers:get-payments', async (_event, supplierId) => {
     return SupplierService.getPayments(supplierId);
   });
+
+  ipcMain.handle(
+    'suppliers:create-simple-purchase',
+    async (_event, { data, userId }) => {
+      return SupplierService.createSimplePurchase(data, userId);
+    },
+  );
 }
 
 export default setupIpcHandlers;

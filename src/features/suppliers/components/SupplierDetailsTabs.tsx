@@ -12,8 +12,13 @@ import {
   BookOpen,
   StickyNote,
   Activity,
+  ShoppingCart,
+  Banknote,
 } from 'lucide-react';
 import SupplierLedgerTab from './SupplierLedgerTab';
+import QuickPurchaseDialog from './QuickPurchaseDialog';
+import RecordPaymentDialog from './RecordPaymentDialog';
+import { Button } from '../../../components/ui/button';
 import { exportToCSV } from '../../../shared/utils/csv-exporter';
 import { generateSupplierStatementPDF } from '../../../shared/utils/pdf-generator';
 import { useSettingsStore } from '../../../stores/settings-store';
@@ -40,6 +45,8 @@ export default function SupplierDetailsTabs({
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const { company } = useSettingsStore();
 
   const companyDetails = {
@@ -229,10 +236,46 @@ export default function SupplierDetailsTabs({
         value="ledger"
         className="animate-in fade-in slide-in-from-bottom-4"
       >
+        {/* Ledger Actions Bar */}
+        <div className="flex gap-3 mb-4">
+          <Button
+            onClick={() => setIsPurchaseDialogOpen(true)}
+            className="gap-2 h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+          >
+            <ShoppingCart size={16} />
+            Add Purchase
+          </Button>
+          <Button
+            onClick={() => setIsPaymentDialogOpen(true)}
+            className="gap-2 h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+          >
+            <Banknote size={16} />
+            Record Payment
+          </Button>
+        </div>
+
         <SupplierLedgerTab
           ledger={ledger}
           onPrint={handlePrintLedger}
           onExport={handleExportLedger}
+        />
+
+        <QuickPurchaseDialog
+          open={isPurchaseDialogOpen}
+          onOpenChange={setIsPurchaseDialogOpen}
+          supplierId={supplierId}
+          supplierName={supplier?.companyName}
+          onSuccess={fetchData}
+        />
+
+        <RecordPaymentDialog
+          open={isPaymentDialogOpen}
+          onOpenChange={setIsPaymentDialogOpen}
+          supplierId={supplierId}
+          onSuccess={() => {
+            fetchData();
+            window.dispatchEvent(new Event('supplier-payment-recorded'));
+          }}
         />
       </TabsContent>
 

@@ -120,6 +120,8 @@ const supplierHandler = {
     ipcRenderer.invoke('suppliers:record-payment', { data, userId }),
   getPayments: (supplierId: string) =>
     ipcRenderer.invoke('suppliers:get-payments', supplierId),
+  createSimplePurchase: (data: any, userId: string) =>
+    ipcRenderer.invoke('suppliers:create-simple-purchase', { data, userId }),
 };
 
 const windowHandler = {
