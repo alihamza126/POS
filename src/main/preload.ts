@@ -4,6 +4,9 @@ const authHandler = {
   login: (credentials: any) => ipcRenderer.invoke('auth:login', credentials),
   logout: () => ipcRenderer.invoke('auth:logout'),
   getSession: () => ipcRenderer.invoke('auth:get-session'),
+  getUsers: () => ipcRenderer.invoke('auth:get-users'),
+  createUser: (params: any) => ipcRenderer.invoke('auth:create-user', params),
+  changePassword: (params: any) => ipcRenderer.invoke('auth:change-password', params),
 };
 
 const dbHandler = {
@@ -17,6 +20,7 @@ const syncHandler = {
   getStatus: () => ipcRenderer.invoke('sync:status'),
   getHistory: () => ipcRenderer.invoke('sync:history'),
   triggerSync: () => ipcRenderer.invoke('sync:trigger'),
+  pullFromCloud: () => ipcRenderer.invoke('sync:pull'),
   setAuto: (enabled: boolean) => ipcRenderer.invoke('sync:set-auto', enabled),
 };
 
@@ -116,6 +120,8 @@ const supplierHandler = {
     ipcRenderer.invoke('suppliers:record-payment', { data, userId }),
   getPayments: (supplierId: string) =>
     ipcRenderer.invoke('suppliers:get-payments', supplierId),
+  createSimplePurchase: (data: any, userId: string) =>
+    ipcRenderer.invoke('suppliers:create-simple-purchase', { data, userId }),
 };
 
 const windowHandler = {

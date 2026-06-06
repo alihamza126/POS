@@ -80,6 +80,26 @@ export class SupplierService {
     return purchase;
   }
 
+  static async createSimplePurchase(data: any, userId: string) {
+    const purchase = await PurchaseInvoiceRepository.createSimple({
+      ...data,
+      userId,
+    });
+
+    await AuditService.log({
+      userId,
+      action: 'PURCHASE_CREATED',
+      entity: 'purchase_invoice',
+      entityId: purchase.id,
+      newValue: purchase,
+      branchId: data.branchId,
+      deviceId: data.deviceId || 'local',
+      metadata: { simple: true, supplierId: data.supplierId },
+    });
+
+    return purchase;
+  }
+
   static async getPurchaseInvoices(supplierId: string) {
     return PurchaseInvoiceRepository.findAllBySupplierId(supplierId);
   }

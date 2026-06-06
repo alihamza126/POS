@@ -42,4 +42,23 @@ export class UserRepository {
     const result = db.select({ count: users.id }).from(users).all();
     return result.length;
   }
+
+  static async listAllUsers(): Promise<User[]> {
+    const result = db.select().from(users).all();
+    return result as User[];
+  }
+
+  static async updatePassword(username: string, newPasswordHash: string): Promise<void> {
+    db.update(users)
+      .set({ passwordHash: newPasswordHash, updatedAt: new Date().toISOString() })
+      .where(eq(users.username, username))
+      .run();
+  }
+
+  static async updateRole(username: string, newRole: User['role']): Promise<void> {
+    db.update(users)
+      .set({ role: newRole, updatedAt: new Date().toISOString() })
+      .where(eq(users.username, username))
+      .run();
+  }
 }
