@@ -19,7 +19,7 @@ import { Badge } from '../../../components/ui/badge';
 import SupplierDetailsTabs from '../components/SupplierDetailsTabs';
 import AddSupplierDialog from '../components/AddSupplierDialog';
 import RecordPaymentDialog from '../components/RecordPaymentDialog';
-import QuickPurchaseDialog from '../components/QuickPurchaseDialog';
+import AddPurchaseInvoiceDialog from '../components/AddPurchaseInvoiceDialog';
 
 export default function SupplierDetailsPage() {
   const { id } = useParams();
@@ -242,11 +242,11 @@ export default function SupplierDetailsPage() {
         }}
       />
 
-      <QuickPurchaseDialog
+      <AddPurchaseInvoiceDialog
         open={isPurchaseDialogOpen}
         onOpenChange={setIsPurchaseDialogOpen}
         supplierId={id!}
-        supplierName={supplier?.companyName}
+        suppliersList={supplier ? [supplier] : []}
         onSuccess={() => {
           fetchSupplier();
           window.dispatchEvent(new Event('purchase-invoice-recorded'));

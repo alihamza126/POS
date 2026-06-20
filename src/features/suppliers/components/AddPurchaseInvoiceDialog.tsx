@@ -262,9 +262,18 @@ export default function AddPurchaseInvoiceDialog({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  append({ productId: '', productName: '', quantity: 1, unitPrice: 0, totalPrice: 0 })
-                }
+                onClick={() => {
+                  const lastItem = watchedItems[watchedItems.length - 1];
+                  if (lastItem && (!lastItem.productName || !lastItem.quantity || !lastItem.unitPrice)) {
+                    toast({
+                      title: "Incomplete Item",
+                      description: "Please fill the current item details before adding a new one.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  append({ productId: '', productName: '', quantity: 1, unitPrice: 0, totalPrice: 0 });
+                }}
                 className="h-10 rounded-xl px-4 border-dashed border-primary hover:bg-primary/5 hover:text-navy text-primary flex items-center gap-2"
               >
                 <Plus size={16} />
@@ -334,6 +343,7 @@ export default function AddPurchaseInvoiceDialog({
                           valueAsNumber: true,
                           onChange: () => calculateItemTotal(index),
                         })}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
 
@@ -348,6 +358,7 @@ export default function AddPurchaseInvoiceDialog({
                           valueAsNumber: true,
                           onChange: () => calculateItemTotal(index),
                         })}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
 

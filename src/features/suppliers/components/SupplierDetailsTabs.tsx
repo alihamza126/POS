@@ -14,9 +14,10 @@ import {
   Activity,
   ShoppingCart,
   Banknote,
+  Package,
 } from 'lucide-react';
 import SupplierLedgerTab from './SupplierLedgerTab';
-import QuickPurchaseDialog from './QuickPurchaseDialog';
+import AddPurchaseInvoiceDialog from './AddPurchaseInvoiceDialog';
 import RecordPaymentDialog from './RecordPaymentDialog';
 import { Button } from '../../../components/ui/button';
 import { exportToCSV } from '../../../shared/utils/csv-exporter';
@@ -43,6 +44,7 @@ export default function SupplierDetailsTabs({
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [ledger, setLedger] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [purchasedProducts, setPurchasedProducts] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
@@ -60,7 +62,7 @@ export default function SupplierDetailsTabs({
     try {
       setLoading(true);
       // @ts-ignore
-      const [summaryResult, ledgerResult, invoicesResult, paymentsResult] = await Promise.all([
+      const [summaryResult, ledgerResult, invoicesResult, paymentsResult, purchasedProductsResult] = await Promise.all([
         // @ts-ignore
         window.api.suppliers.getSummary(supplierId),
         // @ts-ignore
@@ -69,12 +71,15 @@ export default function SupplierDetailsTabs({
         window.api.suppliers.getPurchaseInvoices(supplierId),
         // @ts-ignore
         window.api.suppliers.getPayments(supplierId),
+        // @ts-ignore
+        window.api.suppliers.getPurchasedProducts(supplierId),
       ]);
 
       setSummary(summaryResult || DEFAULT_SUMMARY);
       setLedger(ledgerResult || []);
       setInvoices(invoicesResult || []);
       setPayments(paymentsResult || []);
+      setPurchasedProducts(purchasedProductsResult || []);
     } catch (error) {
       console.error('Failed to fetch supplier tab data:', error);
     } finally {
@@ -163,6 +168,13 @@ export default function SupplierDetailsTabs({
           >
             <FileText size={16} />
             Purchases List
+          </TabsTrigger>
+          <TabsTrigger
+            value="purchased-products"
+            className="rounded-xl px-6 py-2.5 data-[state=active]:bg-navy data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-bold flex items-center gap-2"
+          >
+            <Package size={16} />
+            Purchased Products
           </TabsTrigger>
           <TabsTrigger
             value="payments"
@@ -260,11 +272,11 @@ export default function SupplierDetailsTabs({
           onExport={handleExportLedger}
         />
 
-        <QuickPurchaseDialog
+        <AddPurchaseInvoiceDialog
           open={isPurchaseDialogOpen}
           onOpenChange={setIsPurchaseDialogOpen}
           supplierId={supplierId}
-          supplierName={supplier?.companyName}
+          suppliersList={supplier ? [supplier] : []}
           onSuccess={fetchData}
         />
 
@@ -327,6 +339,53 @@ export default function SupplierDetailsTabs({
                       <td className="p-3 text-sm text-right font-bold text-navy/60">Rs. {inv.totalAmount.toLocaleString()}</td>
                       <td className="p-3 text-sm text-right font-black text-navy">Rs. {inv.payableAmount.toLocaleString()}</td>
                       <td className="p-3 text-sm text-right font-bold text-emerald-600">Rs. {inv.paidAmount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent
+        value="purchased-products"
+        className="animate-in fade-in slide-in-from-bottom-4"
+      >
+        <div className="bg-white p-6 rounded-[24px] shadow-soft border border-navy/5">
+          <h3 className="text-xl font-black text-navy mb-4">Purchased Products History</h3>
+          {purchasedProducts.length === 0 ? (
+            <div className="bg-white p-12 text-center border-2 border-dashed border-navy/10 rounded-2xl">
+              <Package size={48} className="mx-auto text-navy/20 mb-4" />
+              <h3 className="text-lg font-black text-navy">No Purchased Products</h3>
+              <p className="text-text-secondary font-medium mt-1">
+                Record a purchase invoice to start tracking product purchases.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-navy/5 bg-navy/5">
+                    <th className="p-3 font-bold text-navy text-xs uppercase">Date</th>
+                    <th className="p-3 font-bold text-navy text-xs uppercase">Invoice #</th>
+                    <th className="p-3 font-bold text-navy text-xs uppercase">Product Name</th>
+                    <th className="p-3 font-bold text-navy text-xs uppercase text-right">Quantity</th>
+                    <th className="p-3 font-bold text-navy text-xs uppercase text-right">Unit Price</th>
+                    <th className="p-3 font-bold text-navy text-xs uppercase text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchasedProducts.map((item) => (
+                    <tr key={item.id} className="border-b border-navy/5 hover:bg-navy/[0.02]">
+                      <td className="p-3 text-sm font-bold text-navy">
+                        {new Date(item.purchaseDate).toLocaleDateString()}
+                      </td>
+                      <td className="p-3 text-sm font-mono font-bold text-navy/50">{item.invoiceNumber}</td>
+                      <td className="p-3 text-sm font-bold text-navy/80">{item.productName}</td>
+                      <td className="p-3 text-sm text-right font-black text-navy">{item.quantity}</td>
+                      <td className="p-3 text-sm text-right font-bold text-navy/60">Rs. {item.unitPrice.toLocaleString()}</td>
+                      <td className="p-3 text-sm text-right font-bold text-emerald-600">Rs. {item.totalPrice.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

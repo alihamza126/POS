@@ -104,6 +104,10 @@ export class SupplierService {
     return PurchaseInvoiceRepository.findAllBySupplierId(supplierId);
   }
 
+  static async getPurchasedProducts(supplierId: string) {
+    return PurchaseInvoiceRepository.findAllItemsBySupplierId(supplierId);
+  }
+
   static async recordPayment(data: any, userId: string) {
     const payment = await SupplierPaymentRepository.create(data);
 

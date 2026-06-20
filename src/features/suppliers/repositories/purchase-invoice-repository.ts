@@ -4,6 +4,7 @@ import { db } from '../../../database/sqlite/db';
 import {
   purchaseInvoices,
   purchaseInvoiceItems,
+  supplierPayments,
 } from '../../../database/schema/suppliers';
 import { stockMovements } from '../../../database/schema/inventory';
 import { syncService } from '../../../sync/services/sync-service';
@@ -96,6 +97,29 @@ export class PurchaseInvoiceRepository {
       }
     });
 
+    // Create supplier payment if there is a paid amount
+    if (paidAmount > 0) {
+      const paymentId = uuidv4();
+      const paymentData = {
+        id: paymentId,
+        supplierId: invoiceData.supplierId,
+        amount: paidAmount,
+        paymentDate: invoiceData.purchaseDate || new Date().toISOString(),
+        paymentMethod: invoiceData.paymentType || 'cash',
+        referenceNumber: invoiceData.invoiceNumber,
+        memo: `Payment for Purchase Invoice #${invoiceData.invoiceNumber}`,
+        userId,
+        branchId,
+        deviceId,
+      };
+
+      const payment = db.insert(supplierPayments).values(paymentData).returning().get();
+
+      syncService
+        .addToQueue('supplier_payments', paymentId, 'create', payment)
+        .catch(console.error);
+    }
+
     // Add to sync queue
     syncService
       .addToQueue('purchase_invoices', invoiceId, 'create', {
@@ -158,6 +182,29 @@ export class PurchaseInvoiceRepository {
 
     // No stock movements for simple purchase entries (no product linkage)
 
+    // Create supplier payment if there is a paid amount
+    if (paidAmount > 0) {
+      const paymentId = uuidv4();
+      const paymentData = {
+        id: paymentId,
+        supplierId: data.supplierId,
+        amount: paidAmount,
+        paymentDate: data.purchaseDate || new Date().toISOString(),
+        paymentMethod: data.paymentType || 'cash',
+        referenceNumber: invoiceNumber,
+        memo: `Payment for Simple Purchase #${invoiceNumber}`,
+        userId: data.userId,
+        branchId: data.branchId,
+        deviceId: data.deviceId,
+      };
+
+      const payment = db.insert(supplierPayments).values(paymentData).returning().get();
+
+      syncService
+        .addToQueue('supplier_payments', paymentId, 'create', payment)
+        .catch(console.error);
+    }
+
     // Add to sync queue
     syncService
       .addToQueue('purchase_invoices', invoiceId, 'create', invoice)
@@ -190,6 +237,30 @@ export class PurchaseInvoiceRepository {
       .from(purchaseInvoices)
       .where(eq(purchaseInvoices.supplierId, supplierId))
       .orderBy(desc(purchaseInvoices.createdAt))
+      .all();
+  }
+
+  static async findAllItemsBySupplierId(supplierId: string) {
+    return db
+      .select({
+        id: purchaseInvoiceItems.id,
+        purchaseInvoiceId: purchaseInvoiceItems.purchaseInvoiceId,
+        productId: purchaseInvoiceItems.productId,
+        productName: purchaseInvoiceItems.productName,
+        quantity: purchaseInvoiceItems.quantity,
+        unitPrice: purchaseInvoiceItems.unitPrice,
+        totalPrice: purchaseInvoiceItems.totalPrice,
+        discount: purchaseInvoiceItems.discount,
+        invoiceNumber: purchaseInvoices.invoiceNumber,
+        purchaseDate: purchaseInvoices.purchaseDate,
+      })
+      .from(purchaseInvoiceItems)
+      .innerJoin(
+        purchaseInvoices,
+        eq(purchaseInvoiceItems.purchaseInvoiceId, purchaseInvoices.id)
+      )
+      .where(eq(purchaseInvoices.supplierId, supplierId))
+      .orderBy(desc(purchaseInvoices.purchaseDate))
       .all();
   }
 

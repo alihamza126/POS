@@ -246,6 +246,10 @@ export function setupIpcHandlers() {
     return SupplierService.getPurchaseInvoices(supplierId);
   });
 
+  ipcMain.handle('suppliers:get-purchased-products', async (_event, supplierId) => {
+    return SupplierService.getPurchasedProducts(supplierId);
+  });
+
   ipcMain.handle(
     'suppliers:record-payment',
     async (_event, { data, userId }) => {

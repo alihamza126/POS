@@ -116,6 +116,8 @@ const supplierHandler = {
     }),
   getPurchaseInvoices: (supplierId: string) =>
     ipcRenderer.invoke('suppliers:get-purchase-invoices', supplierId),
+  getPurchasedProducts: (supplierId: string) =>
+    ipcRenderer.invoke('suppliers:get-purchased-products', supplierId),
   recordPayment: (data: any, userId: string) =>
     ipcRenderer.invoke('suppliers:record-payment', { data, userId }),
   getPayments: (supplierId: string) =>
