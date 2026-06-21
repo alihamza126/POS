@@ -12,8 +12,10 @@ import {
   BookOpen,
   StickyNote,
   Activity,
+  Stethoscope,
 } from 'lucide-react';
 import CustomerLedgerTab from './CustomerLedgerTab';
+import PatientProfileTab from './PatientProfileTab';
 import { generateCustomerStatementPDF } from '../../../shared/utils/pdf-generator';
 import { exportToCSV } from '../../../shared/utils/csv-exporter';
 import { useSettingsStore } from '../../../stores/settings-store';
@@ -160,6 +162,13 @@ export default function CustomerDetailsTabs({
             Notes
           </TabsTrigger>
           <TabsTrigger
+            value="medical"
+            className="rounded-xl px-6 py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-bold flex items-center gap-2"
+          >
+            <Stethoscope size={16} />
+            Medical
+          </TabsTrigger>
+          <TabsTrigger
             value="activity"
             className="rounded-xl px-6 py-2.5 data-[state=active]:bg-navy data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-bold flex items-center gap-2"
           >
@@ -285,6 +294,13 @@ export default function CustomerDetailsTabs({
             No internal notes available for this customer.
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent
+        value="medical"
+        className="animate-in fade-in slide-in-from-bottom-4"
+      >
+        <PatientProfileTab customerId={customerId} />
       </TabsContent>
 
       <TabsContent

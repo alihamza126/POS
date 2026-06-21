@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow, shell } from 'electron';
 import { AuthService } from '../../features/auth/services/auth-service';
 import { AuditService } from '../../features/audit/services/audit-service';
 import { ProductService } from '../../features/products/services/product-service';
@@ -11,6 +11,7 @@ import { SupplierService } from '../../features/suppliers/services/supplier-serv
 import { SupplierLedgerService } from '../../features/suppliers/services/supplier-ledger-service';
 import { syncService } from '../../sync/services/sync-service';
 import { syncWorker } from '../../main/sync-worker';
+import { MedicalService } from '../../features/inventory/services/medical-service';
 
 export function setupIpcHandlers() {
   // Auth Handlers
@@ -263,6 +264,127 @@ export function setupIpcHandlers() {
       return SupplierService.createSimplePurchase(data, userId);
     },
   );
+
+  // ---------------------------------------------------------------------------
+  // Medical Handlers — Expiry Alerts
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:get-alerts', async (_event, branchId) => {
+    return MedicalService.getActiveAlerts(branchId);
+  });
+
+  ipcMain.handle('medical:get-alert-counts', async (_event, branchId) => {
+    return MedicalService.getAlertCounts(branchId);
+  });
+
+  ipcMain.handle('medical:dismiss-alert', async (_event, { alertId, userId, branchId }) => {
+    return MedicalService.dismissAlert(alertId, userId, branchId);
+  });
+
+  ipcMain.handle('medical:refresh-alerts', async (_event, { branchId, thresholdDays }) => {
+    return MedicalService.refreshExpiryAlerts(branchId, thresholdDays);
+  });
+
+  ipcMain.handle('medical:get-expiring-batches', async (_event, { branchId, thresholdDays }) => {
+    return MedicalService.getExpiringBatches(branchId, thresholdDays);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Medical Handlers — Product Batches
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:get-batches', async (_event, productId) => {
+    return MedicalService.getBatchesForProduct(productId);
+  });
+
+  ipcMain.handle('medical:add-batch', async (_event, { data, userId }) => {
+    return MedicalService.addBatch(data, userId);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Medical Handlers — Patient Records
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:get-patient-record', async (_event, customerId) => {
+    return MedicalService.getPatientRecord(customerId);
+  });
+
+  ipcMain.handle('medical:save-patient-record', async (_event, { customerId, data, userId, branchId }) => {
+    return MedicalService.savePatientRecord(customerId, data, userId, branchId);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Medical Handlers — Prescriptions
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:create-prescription', async (_event, data) => {
+    return MedicalService.createPrescription(data);
+  });
+
+  ipcMain.handle('medical:get-prescriptions', async (_event, customerId) => {
+    return MedicalService.getPrescriptionsByCustomer(customerId);
+  });
+
+  ipcMain.handle('medical:get-prescription', async (_event, id) => {
+    return MedicalService.getPrescriptionById(id);
+  });
+
+  ipcMain.handle('medical:link-prescription', async (_event, { prescriptionId, invoiceId, userId, branchId }) => {
+    return MedicalService.linkPrescriptionToInvoice(prescriptionId, invoiceId, userId, branchId);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Medical Handlers — Clinic Settings
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:get-clinic-settings', async () => {
+    return MedicalService.getClinicSettings();
+  });
+
+  ipcMain.handle('medical:save-clinic-settings', async (_event, { settings, userId, branchId }) => {
+    return MedicalService.saveClinicSettings(settings, userId, branchId);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Print Handler — Opens hidden window and prints receipt HTML
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('print:receipt', async (_event, { html, silent }) => {
+    return new Promise((resolve, reject) => {
+      const printWindow = new BrowserWindow({
+        show: false,
+        width: 400,
+        height: 800,
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        },
+      });
+
+      const encodedHtml = encodeURIComponent(html);
+      printWindow.loadURL(`data:text/html;charset=utf-8,${encodedHtml}`);
+
+      printWindow.webContents.once('did-finish-load', () => {
+        printWindow.webContents.print(
+          {
+            silent: silent ?? false,
+            printBackground: true,
+            margins: { marginType: 'none' },
+          },
+          (success, failureReason) => {
+            printWindow.destroy();
+            if (success) {
+              resolve({ success: true });
+            } else {
+              // eslint-disable-next-line no-console
+              console.error('Print failed:', failureReason);
+              resolve({ success: false, reason: failureReason });
+            }
+          },
+        );
+      });
+
+      printWindow.webContents.once('did-fail-load', () => {
+        printWindow.destroy();
+        reject(new Error('Failed to load print content'));
+      });
+    });
+  });
 }
 
 export default setupIpcHandlers;

@@ -12,12 +12,15 @@ import {
   Clock,
   ShoppingBag,
   DollarSign,
+  Scan,
 } from 'lucide-react';
 import ProductGrid from '../components/ProductGrid';
 import CartPanel from '../components/CartPanel';
 import { usePOSStore } from '../../../stores/pos-store';
 import { useAuthStore } from '../../../stores/auth-store';
 import { APP_CONFIG } from '../../../shared/constants/config';
+import QRScannerModal from '../components/QRScannerModal';
+import MedicalReceiptPrinter from '../components/MedicalReceiptPrinter';
 
 export default function POSPage() {
   const navigate = useNavigate();
@@ -35,6 +38,23 @@ export default function POSPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [categoryList, setCategoryList] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<any | null>(null);
+  const [clinicInfo, setClinicInfo] = useState<any>({});
+
+  // Load clinic info for receipts
+  useEffect(() => {
+    const loadClinic = async () => {
+      try {
+        // @ts-ignore
+        const settings = await window.api.medical.getClinicSettings();
+        setClinicInfo(settings || {});
+      } catch {
+        // Clinic info is optional
+      }
+    };
+    loadClinic();
+  }, []);
 
   // Auto-focus search on mount
   useEffect(() => {
@@ -124,19 +144,31 @@ export default function POSPage() {
           Exit POS
         </button>
 
-        <div className="flex-1 max-w-2xl mx-auto relative">
-          <Search
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
-          />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search products by name, SKU, or barcode..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/10 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#24D4FE] focus:bg-white/15 transition-all text-sm font-medium"
-          />
+        <div className="flex-1 max-w-2xl mx-auto relative flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+            />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search medicines by name, SKU, or barcode..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/10 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#24D4FE] focus:bg-white/15 transition-all text-sm font-medium"
+            />
+          </div>
+          {/* QR/Barcode Scanner Button */}
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            className="flex items-center gap-2 bg-[#24D4FE]/20 hover:bg-[#24D4FE]/30 border border-[#24D4FE]/30 rounded-2xl px-4 py-3 text-[#24D4FE] text-sm font-bold transition-all shrink-0"
+            title="Open QR/Barcode Scanner"
+          >
+            <Scan size={18} />
+            Scan
+          </button>
         </div>
 
         <div className="flex items-center gap-6 text-white/50 text-xs font-bold shrink-0">
@@ -209,13 +241,73 @@ export default function POSPage() {
         {/* Cart Panel (right) */}
         <div className="w-[440px] shrink-0 border-l border-navy/10 bg-white shadow-2xl flex flex-col">
           <CartPanel
-            onSaleComplete={() => {
+            onSaleComplete={(completedSale?: any) => {
               fetchProducts();
               fetchDailySummary();
+              // Show receipt printer if sale data provided
+              if (completedSale) {
+                const receiptPayload = {
+                  invoiceNumber: completedSale.invoiceNumber || completedSale.id?.slice(-8).toUpperCase(),
+                  date: new Date().toLocaleString(),
+                  cashierName: user?.username || 'Cashier',
+                  patientName: completedSale.customerName || undefined,
+                  patientPhone: completedSale.customerPhone || undefined,
+                  items: (completedSale.items || []).map((item: any) => ({
+                    name: item.productName || item.name || 'Medicine',
+                    composition: item.composition,
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice || item.sellingPrice || 0,
+                    totalPrice: item.totalPrice || (item.quantity * (item.unitPrice || 0)),
+                    discount: item.discount,
+                  })),
+                  subtotal: completedSale.subtotal || completedSale.totalAmount || 0,
+                  discountAmount: completedSale.discountAmount || 0,
+                  taxAmount: completedSale.taxAmount || 0,
+                  totalAmount: completedSale.payableAmount || completedSale.totalAmount || 0,
+                  paidAmount: completedSale.paidAmount || completedSale.payableAmount || 0,
+                  changeAmount: completedSale.changeAmount || 0,
+                  paymentType: completedSale.paymentType || 'cash',
+                  clinicInfo: clinicInfo,
+                };
+                setReceiptData(receiptPayload);
+              }
             }}
           />
         </div>
       </div>
+
+      {/* QR/Barcode Scanner Modal */}
+      <QRScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(value) => {
+          setSearchQuery(value);
+          // Auto-focus search after scan
+          setTimeout(() => searchRef.current?.focus(), 50);
+        }}
+      />
+
+      {/* Receipt Printer Dialog */}
+      {receiptData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(2,2,92,0.5)', backdropFilter: 'blur(6px)' }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-[420px] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-5 pt-5 bg-[#02025C] text-white">
+              <h2 className="text-lg font-black">Homio Medical Clinic</h2>
+              <p className="text-white/60 text-xs pb-4">Print patient receipt</p>
+            </div>
+            <MedicalReceiptPrinter
+              receipt={receiptData}
+              onPrint={() => setReceiptData(null)}
+              onClose={() => setReceiptData(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bottom Status Bar */}
       <footer className="bg-white border-t border-navy/10 px-6 py-2 flex items-center justify-between text-xs font-bold text-navy/40 shrink-0">

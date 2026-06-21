@@ -31,6 +31,7 @@ import { APP_CONFIG } from '../../../shared/constants/config';
 import { useAuthStore } from '../../../stores/auth-store';
 import { cn } from '../../../shared/utils';
 import { useNavigate } from 'react-router-dom';
+import ExpiryAlertPanel from '../../inventory/components/ExpiryAlertPanel';
 
 interface SalesGroup {
   label: string;
@@ -407,6 +408,9 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Expiry Alert Panel — Medical POS */}
+      <ExpiryAlertPanel />
 
       {/* Main Analytics Graph Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

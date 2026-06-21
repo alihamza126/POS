@@ -26,7 +26,13 @@ import {
   Scale,
   AlertTriangle,
   Info,
+  Pill,
+  MapPin,
+  Calendar,
+  Factory,
+  FlaskConical,
 } from 'lucide-react';
+
 
 const productSchema = z.object({
   name: z.string().min(2, 'Product name is required'),
@@ -42,6 +48,13 @@ const productSchema = z.object({
     .min(0, 'Reorder level must be positive')
     .default(10),
   initialStock: z.coerce.number().min(0).optional().default(0),
+  // Medical fields
+  composition: z.string().optional().nullable(),
+  manufacturer: z.string().optional().nullable(),
+  batchNumber: z.string().optional().nullable(),
+  expiryDate: z.string().optional().nullable(),
+  rackLocation: z.string().optional().nullable(),
+  requiresPrescription: z.boolean().optional().default(false),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -472,6 +485,92 @@ export default function AddProductDialog({
                   {...register('reorderLevel', { valueAsNumber: true })}
                   onFocus={(e) => e.target.select()}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Medical Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-navy/10">
+              <Pill size={16} className="text-purple-500" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-navy/70">
+                Medical / Pharma Info
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="composition" className="text-sm font-bold text-navy flex items-center gap-2">
+                  <FlaskConical size={14} className="text-purple-500" />
+                  Composition / Salt Name
+                </Label>
+                <Input
+                  id="composition"
+                  placeholder="e.g. Amoxicillin 500mg"
+                  {...register('composition')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manufacturer" className="text-sm font-bold text-navy flex items-center gap-2">
+                  <Factory size={14} className="text-purple-500" />
+                  Manufacturer
+                </Label>
+                <Input
+                  id="manufacturer"
+                  placeholder="e.g. GSK Pakistan"
+                  {...register('manufacturer')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rackLocation" className="text-sm font-bold text-navy flex items-center gap-2">
+                  <MapPin size={14} className="text-purple-500" />
+                  Rack / Shelf Location
+                </Label>
+                <Input
+                  id="rackLocation"
+                  placeholder="e.g. A-12, Shelf 3"
+                  {...register('rackLocation')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batchNumber" className="text-sm font-bold text-navy flex items-center gap-2">
+                  <Barcode size={14} className="text-purple-500" />
+                  Batch Number
+                </Label>
+                <Input
+                  id="batchNumber"
+                  placeholder="e.g. BT-2024-001"
+                  className="font-mono"
+                  {...register('batchNumber')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="expiryDate" className="text-sm font-bold text-navy flex items-center gap-2">
+                  <Calendar size={14} className="text-purple-500" />
+                  Expiry Date
+                </Label>
+                <Input
+                  id="expiryDate"
+                  type="date"
+                  {...register('expiryDate')}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-purple-50 border border-purple-100 hover:bg-purple-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded accent-purple-600"
+                    {...register('requiresPrescription')}
+                  />
+                  <div>
+                    <div className="font-bold text-sm text-[#02025C]">Requires Prescription (Rx)</div>
+                    <div className="text-xs text-gray-500 mt-0.5">This medicine requires a doctor's prescription to dispense</div>
+                  </div>
+                </label>
               </div>
             </div>
           </div>

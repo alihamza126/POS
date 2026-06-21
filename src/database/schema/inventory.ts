@@ -14,6 +14,13 @@ export const products = sqliteTable('products', {
   reorderLevel: integer('reorder_level').notNull().default(10),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   branchId: text('branch_id').notNull(),
+  // Medical fields
+  composition: text('composition'),           // Active ingredient / salt name
+  manufacturer: text('manufacturer'),         // Pharmaceutical company
+  batchNumber: text('batch_number'),          // Default/latest batch number
+  expiryDate: text('expiry_date'),            // ISO date string YYYY-MM-DD
+  rackLocation: text('rack_location'),        // Shelf / rack reference
+  requiresPrescription: integer('requires_prescription', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
@@ -28,6 +35,7 @@ export const stockMovements = sqliteTable('stock_movements', {
   }).notNull(),
   quantity: integer('quantity').notNull(), // Positive for in, negative for out
   referenceId: text('reference_id'), // Link to invoice_id, purchase_id, etc.
+  batchId: text('batch_id'),          // Link to product_batches for FEFO tracking
   reason: text('reason'),
   userId: text('user_id').notNull(),
   branchId: text('branch_id').notNull(),

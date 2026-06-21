@@ -5,6 +5,8 @@ import {
   Loader2,
   Banknote,
   Download,
+  Printer,
+  ReceiptText,
 } from 'lucide-react';
 import { usePOSStore } from '../../../stores/pos-store';
 import { useAuthStore } from '../../../stores/auth-store';
@@ -12,6 +14,10 @@ import { generateInvoicePDF } from '../../../shared/utils/pdf-generator';
 import { useSettingsStore } from '../../../stores/settings-store';
 import { audioService } from '../../../shared/utils/audio';
 import { APP_CONFIG } from '../../../shared/constants/config';
+import MedicalReceiptPrinter, {
+  generateReceiptHtml,
+  type ReceiptData,
+} from './MedicalReceiptPrinter';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -47,6 +53,10 @@ export default function PaymentDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<any>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [clinicInfo, setClinicInfo] = useState<any>({});
+  const [silentPrinting, setSilentPrinting] = useState(false);
+  const [receiptPrinted, setReceiptPrinted] = useState(false);
 
   const grandTotal = getGrandTotal();
   const changeAmount = getChangeAmount();
@@ -78,12 +88,78 @@ export default function PaymentDialog({
         deviceId: APP_CONFIG.branch.defaultDeviceId,
       });
 
+      // Load clinic info for receipt
+      try {
+        // @ts-ignore
+        const settings = await window.api.medical.getClinicSettings();
+        setClinicInfo(settings || {});
+      } catch {
+        // Clinic info is optional
+      }
+
       audioService.playSuccess();
       setSuccess(result);
     } catch (err: any) {
       setError(err?.message || 'Failed to complete sale. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /** Build the ReceiptData object from the completed sale result */
+  const buildReceiptData = (): ReceiptData => ({
+    invoiceNumber:
+      success?.invoice?.invoiceNumber ||
+      success?.invoice?.id?.slice(-8).toUpperCase() ||
+      'N/A',
+    date: new Date().toLocaleString(),
+    cashierName: user?.username || 'Cashier',
+    patientName: customerName || undefined,
+    patientPhone: undefined,
+    items: (success?.items || items).map((item: any) => ({
+      name: item.productName || item.name || 'Medicine',
+      composition: item.composition,
+      batchNumber: item.batchNumber,
+      expiryDate: item.expiryDate,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice || item.sellingPrice || 0,
+      totalPrice:
+        item.totalPrice || item.total || item.quantity * (item.unitPrice || 0),
+      discount: item.discount,
+    })),
+    subtotal: success?.invoice?.totalAmount || subtotal,
+    discountAmount: success?.invoice?.discountAmount || totalDiscount,
+    taxAmount: success?.invoice?.taxAmount || taxAmount,
+    totalAmount: success?.invoice?.payableAmount || grandTotal,
+    paidAmount: success?.invoice?.paidAmount || amountTendered,
+    changeAmount: success?.invoice?.changeAmount || changeAmount,
+    paymentType: success?.invoice?.paymentType || paymentMethod,
+    clinicInfo: {
+      clinicName: clinicInfo?.clinicName || company?.name || 'Homio Clinic',
+      doctorName: clinicInfo?.doctorName,
+      address: clinicInfo?.address || company?.address,
+      phone: clinicInfo?.phone || company?.phone,
+      licenseNumber: clinicInfo?.licenseNumber,
+      receiptFooter: clinicInfo?.receiptFooter || 'Thank you for visiting us!',
+      currency: 'Rs.',
+      showBatchOnReceipt: clinicInfo?.showBatchOnReceipt ?? true,
+      showExpiryOnReceipt: clinicInfo?.showExpiryOnReceipt ?? true,
+      showCompositionOnReceipt: clinicInfo?.showCompositionOnReceipt ?? true,
+    },
+  });
+
+  /** Silently print the slip (no dialog — direct to default printer) */
+  const handleSilentPrint = async () => {
+    setSilentPrinting(true);
+    try {
+      const html = generateReceiptHtml(buildReceiptData());
+      // @ts-ignore
+      await window.api.print.printReceipt(html, true);
+      setReceiptPrinted(true);
+    } catch (err) {
+      console.error('Silent print failed:', err);
+    } finally {
+      setSilentPrinting(false);
     }
   };
 
@@ -94,11 +170,48 @@ export default function PaymentDialog({
 
   if (!open) return null;
 
-  // Success State
+  // ── Success State ──────────────────────────────────────────────────────────
   if (success) {
+    // If "View Receipt" was clicked, show the printer sub-panel
+    if (showReceipt) {
+      return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-[#02025C] px-6 py-4 flex items-center gap-3">
+              <ReceiptText size={20} className="text-[#24D4FE]" />
+              <div>
+                <div className="text-white font-black text-sm">Print Slip</div>
+                <div className="text-white/50 text-xs">
+                  Invoice #{success?.invoice?.invoiceNumber}
+                </div>
+              </div>
+            </div>
+            <MedicalReceiptPrinter
+              receipt={buildReceiptData()}
+              onPrint={() => {
+                setShowReceipt(false);
+              }}
+              onClose={() => setShowReceipt(false)}
+            />
+            <div className="px-5 pb-4">
+              <button
+                type="button"
+                onClick={handleNewSale}
+                className="w-full bg-[#24D4FE] text-[#02025C] font-black py-3 rounded-2xl hover:bg-[#1bc0e8] transition-all active:scale-[0.98] shadow-lg shadow-[#24D4FE]/30 text-sm uppercase tracking-wider"
+              >
+                New Sale
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Main success screen ───────────────────────────────────────────────────
     return (
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
         <div className="bg-white rounded-[32px] w-full max-w-md p-8 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+          {/* Success icon */}
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={48} className="text-emerald-600" />
           </div>
@@ -109,7 +222,8 @@ export default function PaymentDialog({
             Invoice #{success.invoice?.invoiceNumber}
           </p>
 
-          <div className="bg-[#F1EFF9] rounded-2xl p-6 mb-6 space-y-3">
+          {/* Summary */}
+          <div className="bg-[#F1EFF9] rounded-2xl p-6 mb-6 space-y-3 text-left">
             <div className="flex justify-between text-sm">
               <span className="font-bold text-navy/50">Total Amount</span>
               <span className="font-black text-[#02025C]">
@@ -144,7 +258,38 @@ export default function PaymentDialog({
             )}
           </div>
 
-          <div className="flex gap-3">
+          {/* Action buttons */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {/* Print Slip — primary action */}
+            <button
+              type="button"
+              onClick={() => setShowReceipt(true)}
+              className="col-span-3 flex items-center justify-center gap-2 bg-[#02025C] text-white font-black py-4 rounded-2xl hover:bg-[#030380] transition-all active:scale-[0.98] shadow-lg text-base"
+            >
+              <Printer size={20} />
+              Print Slip
+            </button>
+
+            {/* Silent print (direct to default printer, no dialog) */}
+            <button
+              type="button"
+              onClick={handleSilentPrint}
+              disabled={silentPrinting || receiptPrinted}
+              className="flex items-center justify-center gap-1 bg-emerald-600 text-white font-bold py-3 rounded-2xl hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
+            >
+              {silentPrinting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : receiptPrinted ? (
+                '✓ Sent'
+              ) : (
+                <>
+                  <Printer size={14} />
+                  Auto
+                </>
+              )}
+            </button>
+
+            {/* PDF download */}
             <button
               type="button"
               onClick={() => {
@@ -168,28 +313,34 @@ export default function PaymentDialog({
                     changeAmount: success.invoice.changeAmount,
                     paymentType: success.invoice.paymentType,
                   },
-                  company
+                  company,
                 );
               }}
-              className="flex-1 bg-white text-[#02025C] border border-[#02025C]/10 font-bold py-4 rounded-2xl hover:bg-[#F1EFF9] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="flex items-center justify-center gap-1 bg-white text-[#02025C] border border-[#02025C]/10 font-bold py-3 rounded-2xl hover:bg-[#F1EFF9] transition-all active:scale-[0.98] text-sm"
             >
-              <Download size={20} />
-              Download PDF
+              <Download size={14} />
+              PDF
             </button>
+
+            {/* New Sale */}
             <button
               type="button"
               onClick={handleNewSale}
-              className="flex-1 bg-[#24D4FE] text-[#02025C] font-black py-4 rounded-2xl hover:bg-[#1bc0e8] transition-all active:scale-[0.98] shadow-lg shadow-[#24D4FE]/30"
+              className="flex items-center justify-center gap-1 bg-[#24D4FE] text-[#02025C] font-black py-3 rounded-2xl hover:bg-[#1bc0e8] transition-all active:scale-[0.98] shadow-lg shadow-[#24D4FE]/30 text-sm"
             >
               New Sale
             </button>
           </div>
+
+          <p className="text-xs text-gray-400 font-medium">
+            <span className="font-bold text-[#02025C]">Auto</span> sends directly to your slip printer · <span className="font-bold text-[#02025C]">Print Slip</span> opens preview
+          </p>
         </div>
       </div>
     );
   }
 
-  // Payment Form
+  // ── Payment Form ───────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300">

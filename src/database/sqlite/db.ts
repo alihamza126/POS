@@ -10,6 +10,7 @@ import * as syncSchema from '../schema/sync';
 import * as customersSchema from '../schema/customers';
 import * as categoriesSchema from '../schema/categories';
 import * as suppliersSchema from '../schema/suppliers';
+import * as medicalSchema from '../schema/medical';
 
 const schema = {
   ...authSchema,
@@ -20,6 +21,7 @@ const schema = {
   ...customersSchema,
   ...categoriesSchema,
   ...suppliersSchema,
+  ...medicalSchema,
 };
 
 // Ensure this runs only in the main process or during testing

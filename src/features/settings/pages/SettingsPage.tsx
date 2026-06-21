@@ -1,15 +1,17 @@
 import React from 'react';
-import { 
-  Settings as SettingsIcon, 
-  Cloud, 
-  Shield, 
-  Printer, 
-  Building
+import {
+  Settings as SettingsIcon,
+  Cloud,
+  Shield,
+  Printer,
+  Building,
+  Stethoscope,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import SyncSettings from '../components/SyncSettings';
 import CompanySettings from '../components/CompanySettings';
 import UserManagement from '../components/UserManagement';
+import ClinicSettings from '../components/ClinicSettings';
 
 export default function SettingsPage() {
   return (
@@ -21,43 +23,54 @@ export default function SettingsPage() {
             <SettingsIcon size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-navy tracking-tight">Terminal Settings</h1>
-            <p className="text-navy/50 font-medium">Configure your POS system and cloud synchronization</p>
+            <h1 className="text-3xl font-black text-navy tracking-tight">System Settings</h1>
+            <p className="text-navy/50 font-medium">Configure your clinic POS and cloud synchronization</p>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="sync" className="space-y-8">
-        <TabsList className="bg-surface p-1 rounded-2xl border border-navy/10 h-auto gap-1">
-          <TabsTrigger 
-            value="sync" 
+      <Tabs defaultValue="clinic" className="space-y-8">
+        <TabsList className="bg-surface p-1 rounded-2xl border border-navy/10 h-auto gap-1 flex-wrap">
+          <TabsTrigger
+            value="clinic"
+            className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 flex items-center gap-2"
+          >
+            <Stethoscope size={18} />
+            Clinic
+          </TabsTrigger>
+          <TabsTrigger
+            value="sync"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 flex items-center gap-2"
           >
             <Cloud size={18} />
             Cloud Sync
           </TabsTrigger>
-          <TabsTrigger 
-            value="company" 
+          <TabsTrigger
+            value="company"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 flex items-center gap-2"
           >
             <Building size={18} />
             Company Info
           </TabsTrigger>
-          <TabsTrigger 
-            value="security" 
+          <TabsTrigger
+            value="security"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 flex items-center gap-2"
           >
             <Shield size={18} />
             Security
           </TabsTrigger>
-          <TabsTrigger 
-            value="printing" 
+          <TabsTrigger
+            value="printing"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 flex items-center gap-2"
           >
             <Printer size={18} />
             Printing
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="clinic" className="mt-0">
+          <ClinicSettings />
+        </TabsContent>
 
         <TabsContent value="sync" className="mt-0 ring-offset-background focus-visible:outline-none">
           <SyncSettings />
@@ -78,24 +91,11 @@ export default function SettingsPage() {
             </div>
             <h2 className="text-2xl font-bold text-navy">Print Configuration</h2>
             <p className="text-navy/50 max-w-md mx-auto">
-              Setup thermal printers, A4 invoice templates, and automatic printing options.
+              Configure clinic receipt settings under the <strong>Clinic</strong> tab above.
             </p>
           </div>
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-function Button({ children, variant, className, ...props }: any) {
-  const base = "inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50";
-  const variants: any = {
-    primary: "bg-primary text-white hover:bg-primary/90",
-    outline: "border border-navy/10 bg-surface text-navy hover:bg-navy/5"
-  };
-  return (
-    <button className={`${base} ${variants[variant || 'primary']} ${className}`} {...props}>
-      {children}
-    </button>
   );
 }

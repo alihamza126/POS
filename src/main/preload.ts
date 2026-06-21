@@ -139,6 +139,44 @@ const windowHandler = {
   confirmClose: () => ipcRenderer.send('app:confirm-close'),
 };
 
+// Medical / Clinic Handlers
+const medicalHandler = {
+  // Expiry Alerts
+  getAlerts: (branchId: string) => ipcRenderer.invoke('medical:get-alerts', branchId),
+  getAlertCounts: (branchId: string) => ipcRenderer.invoke('medical:get-alert-counts', branchId),
+  dismissAlert: (alertId: string, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:dismiss-alert', { alertId, userId, branchId }),
+  refreshAlerts: (branchId: string, thresholdDays?: number) =>
+    ipcRenderer.invoke('medical:refresh-alerts', { branchId, thresholdDays: thresholdDays ?? 90 }),
+  getExpiringBatches: (branchId: string, thresholdDays?: number) =>
+    ipcRenderer.invoke('medical:get-expiring-batches', { branchId, thresholdDays: thresholdDays ?? 90 }),
+  // Product Batches
+  getBatches: (productId: string) => ipcRenderer.invoke('medical:get-batches', productId),
+  addBatch: (data: any, userId: string) => ipcRenderer.invoke('medical:add-batch', { data, userId }),
+  // Patient Records
+  getPatientRecord: (customerId: string) =>
+    ipcRenderer.invoke('medical:get-patient-record', customerId),
+  savePatientRecord: (customerId: string, data: any, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:save-patient-record', { customerId, data, userId, branchId }),
+  // Prescriptions
+  createPrescription: (data: any) => ipcRenderer.invoke('medical:create-prescription', data),
+  getPrescriptions: (customerId: string) =>
+    ipcRenderer.invoke('medical:get-prescriptions', customerId),
+  getPrescription: (id: string) => ipcRenderer.invoke('medical:get-prescription', id),
+  linkPrescription: (prescriptionId: string, invoiceId: string, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:link-prescription', { prescriptionId, invoiceId, userId, branchId }),
+  // Clinic Settings
+  getClinicSettings: () => ipcRenderer.invoke('medical:get-clinic-settings'),
+  saveClinicSettings: (settings: Record<string, string>, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:save-clinic-settings', { settings, userId, branchId }),
+};
+
+// Print Handler
+const printHandler = {
+  printReceipt: (html: string, silent?: boolean) =>
+    ipcRenderer.invoke('print:receipt', { html, silent: silent ?? false }),
+};
+
 contextBridge.exposeInMainWorld('api', {
   auth: authHandler,
   db: dbHandler,
@@ -150,6 +188,8 @@ contextBridge.exposeInMainWorld('api', {
   categories: categoryHandler,
   suppliers: supplierHandler,
   window: windowHandler,
+  medical: medicalHandler,
+  print: printHandler,
 });
 
 export type ApiHandler = {
@@ -163,4 +203,6 @@ export type ApiHandler = {
   categories: typeof categoryHandler;
   suppliers: typeof supplierHandler;
   window: typeof windowHandler;
+  medical: typeof medicalHandler;
+  print: typeof printHandler;
 };
