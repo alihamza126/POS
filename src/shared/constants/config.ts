@@ -6,9 +6,9 @@
 export const APP_CONFIG = {
   // Branch & Device Identity Configs
   branch: {
-    defaultId: 'BR-01',
-    defaultDeviceId: 'DEV-01',
-    invoicePrefix: 'AMA-01',
+    defaultId: 'BR-2',
+    defaultDeviceId: 'D-2',
+    invoicePrefix: 'ZH-',
   },
 
   // PDF & Printable Account Statement Details
