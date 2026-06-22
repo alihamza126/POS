@@ -244,14 +244,41 @@
     },
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "license": "assets/license.rtf",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "A POS System",
+      "runAfterFinish": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": ["English"],
+      "language": "1033",
+      "warningsAsErrors": false,
+      "include": "assets/installer.nsh"
     },
     "linux": {
       "target": [
-        "deb"
+        "deb",
+        "AppImage"
       ],
-      "category": "Development"
+      "category": "Office",
+      "icon": "assets/icons",
+      "description": "A POS System - Offline-first Point of Sale & Inventory Management",
+      "maintainer": "AH Developer <alihamzah.dev@gmail.com>"
     },
     "directories": {
       "app": "release/app",
