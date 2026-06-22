@@ -265,8 +265,6 @@
       "runAfterFinish": true,
       "perMachine": false,
       "deleteAppDataOnUninstall": false,
-      "installerLanguages": ["English"],
-      "language": "1033",
       "warningsAsErrors": false,
       "include": "assets/installer.nsh"
     },
