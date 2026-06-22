@@ -4,19 +4,23 @@ import { db } from './db';
 
 export async function runMigrations() {
   try {
-    // In production, migrations should be bundled or copied to a reachable location
-    // For development, we point to the source folder
-    const migrationsPath =
-      process.env.NODE_ENV === 'production'
-        ? path.join(process.resourcesPath, 'migrations')
-        : path.join(__dirname, '../../src/database/migrations');
+    let migrationsPath: string;
 
-    console.log('Running migrations from:', migrationsPath);
+    if (process.env.NODE_ENV === 'production') {
+      // In packaged app, migrations are copied to resources/migrations via extraResources
+      migrationsPath = path.join(process.resourcesPath, 'migrations');
+    } else {
+      // In development, __dirname is .erb/dll/ — navigate up to project root
+      migrationsPath = path.join(__dirname, '../../../src/database/migrations');
+    }
+
+    console.log('[DB] Running migrations from:', migrationsPath);
 
     await migrate(db, { migrationsFolder: migrationsPath });
-    console.log('Migrations completed successfully');
+    console.log('[DB] Migrations completed successfully');
   } catch (error) {
-    console.error('Migration failed:', error);
+    console.error('[DB] Migration failed:', error);
     throw error;
   }
 }
+
