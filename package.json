@@ -204,6 +204,9 @@
     "webpack-dev-server": "^5.2.0",
     "webpack-merge": "^6.0.1"
   },
+  "overrides": {
+    "@react-pdf/font": "4.0.8"
+  },
   "build": {
     "productName": "A POS System",
     "appId": "com.ahsolutions.apos",
