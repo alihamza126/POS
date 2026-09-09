@@ -8,7 +8,7 @@ name: Build Windows Installer
 on:
   push:
     branches:
-      - '**'
+      - feat/medical
   workflow_dispatch:
 
 permissions:
