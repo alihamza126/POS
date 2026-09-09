@@ -1,0 +1,51 @@
+name: Build Windows Installer
+
+# Runs on a real windows-latest GitHub-hosted runner rather than
+# cross-compiling from Linux — better-sqlite3 is a native module, and this
+# way it's built/fetched for the correct win32 target on the actual OS
+# instead of relying on Wine cross-compilation.
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No lockfile is committed in this repo (package-lock.json / yarn.lock
+      # are gitignored), so `npm ci` isn't usable here — a plain install is
+      # the only option until that changes.
+      - name: Install dependencies
+        run: npm install
+
+      # Runs the same script as a local `npm run package`: cleans dist,
+      # builds main+renderer, then electron-builder packages the NSIS
+      # installer per the "win"/"nsis" config in package.json.
+      - name: Build Windows installer
+        run: npm run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: A-POS-Windows-Installer
+          path: |
+            release/build/*.exe
+            release/build/*.exe.blockmap
+          if-no-files-found: error
+          retention-days: 30
