@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, shell } from 'electron';
+import { ipcMain } from 'electron';
 import { AuthService } from '../../features/auth/services/auth-service';
 import { AuditService } from '../../features/audit/services/audit-service';
 import { ProductService } from '../../features/products/services/product-service';
@@ -12,11 +12,31 @@ import { SupplierLedgerService } from '../../features/suppliers/services/supplie
 import { syncService } from '../../sync/services/sync-service';
 import { syncWorker } from '../../main/sync-worker';
 import { MedicalService } from '../../features/inventory/services/medical-service';
+import { listPrinters, printHtml } from '../printer/printer-utils';
+import { SessionManager } from '../auth/session';
+import { requirePermission } from '../auth/permissions';
 
 export function setupIpcHandlers() {
   // Auth Handlers
   ipcMain.handle('auth:login', async (_event, credentials) => {
-    return AuthService.login(credentials.username, credentials.password);
+    const result = await AuthService.login(credentials.username, credentials.password);
+    if (result.success && result.user) {
+      SessionManager.setCurrentUser(result.user);
+    }
+    return result;
+  });
+
+  ipcMain.handle('auth:logout', async () => {
+    const user = SessionManager.getCurrentUser();
+    if (user) {
+      await AuthService.logout(user.id, user.branchId);
+    }
+    SessionManager.clear();
+    return { success: true };
+  });
+
+  ipcMain.handle('auth:get-session', async () => {
+    return SessionManager.getCurrentUser();
   });
 
   ipcMain.handle('auth:get-users', async () => {
@@ -24,10 +44,12 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('auth:create-user', async (_event, { username, password, role, adminUserId }) => {
+    requirePermission('MANAGE_USERS');
     return AuthService.createUser(username, password, role, adminUserId);
   });
 
   ipcMain.handle('auth:change-password', async (_event, { username, newPassword, adminUserId }) => {
+    requirePermission('MANAGE_USERS');
     return AuthService.changePassword(username, newPassword, adminUserId);
   });
 
@@ -49,12 +71,14 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('products:delete', async (_event, { id, userId }) => {
+    requirePermission('DELETE_RECORDS');
     return ProductService.deleteProduct(id, userId);
   });
 
   ipcMain.handle(
     'products:adjust-stock',
     async (_event, { productId, quantity, type, reason, userId, branchId }) => {
+      requirePermission('ADJUST_STOCK');
       return ProductService.adjustStock(
         productId,
         quantity,
@@ -99,7 +123,24 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('sync:set-auto', async (_event, enabled: boolean) => {
+    requirePermission('MANAGE_SETTINGS');
     return syncWorker.setAutoSync(enabled);
+  });
+
+  ipcMain.handle('sync:get-failed-items', async () => {
+    return syncService.getFailedItems();
+  });
+
+  ipcMain.handle('sync:retry-item', async (_event, id: string) => {
+    requirePermission('MANAGE_SETTINGS');
+    await syncService.retryItem(id);
+    return syncService.processQueue();
+  });
+
+  ipcMain.handle('sync:retry-all-failed', async () => {
+    requirePermission('MANAGE_SETTINGS');
+    await syncService.retryAllFailed();
+    return syncService.processQueue();
   });
 
   // Audit Handlers
@@ -131,6 +172,7 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('customers:delete', async (_event, { id, userId }) => {
+    requirePermission('DELETE_RECORDS');
     return CustomerService.deleteCustomer(id, userId);
   });
 
@@ -169,6 +211,7 @@ export function setupIpcHandlers() {
   ipcMain.handle(
     'sales:cancel',
     async (_event, { id, userId, branchId, deviceId }) => {
+      requirePermission('CANCEL_SALE');
       return SalesService.cancelSale(id, userId, branchId, deviceId);
     },
   );
@@ -198,6 +241,7 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('categories:delete', async (_event, { id, userId }) => {
+    requirePermission('DELETE_RECORDS');
     return CategoryService.deleteCategory(id, userId);
   });
 
@@ -219,6 +263,7 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('suppliers:delete', async (_event, { id, userId }) => {
+    requirePermission('DELETE_RECORDS');
     return SupplierService.deleteSupplier(id, userId);
   });
 
@@ -337,53 +382,45 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('medical:save-clinic-settings', async (_event, { settings, userId, branchId }) => {
+    requirePermission('MANAGE_SETTINGS');
     return MedicalService.saveClinicSettings(settings, userId, branchId);
   });
 
   // ---------------------------------------------------------------------------
+  // Medical Handlers — Disease Formulas (Disease → Remedy library)
+  // ---------------------------------------------------------------------------
+  ipcMain.handle('medical:list-disease-formulas', async (_event, { branchId, query, activeOnly }) => {
+    return MedicalService.listDiseaseFormulas(branchId, { query, activeOnly });
+  });
+
+  ipcMain.handle('medical:get-disease-formula', async (_event, id) => {
+    return MedicalService.getDiseaseFormula(id);
+  });
+
+  ipcMain.handle('medical:create-disease-formula', async (_event, { data, userId }) => {
+    return MedicalService.createDiseaseFormula(data, userId);
+  });
+
+  ipcMain.handle('medical:update-disease-formula', async (_event, { id, data, userId, branchId }) => {
+    return MedicalService.updateDiseaseFormula(id, data, userId, branchId);
+  });
+
+  ipcMain.handle(
+    'medical:set-disease-formula-active',
+    async (_event, { id, isActive, userId, branchId }) => {
+      return MedicalService.setDiseaseFormulaActive(id, isActive, userId, branchId);
+    },
+  );
+
+  // ---------------------------------------------------------------------------
   // Print Handler — Opens hidden window and prints receipt HTML
   // ---------------------------------------------------------------------------
-  ipcMain.handle('print:receipt', async (_event, { html, silent }) => {
-    return new Promise((resolve, reject) => {
-      const printWindow = new BrowserWindow({
-        show: false,
-        width: 400,
-        height: 800,
-        webPreferences: {
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-        },
-      });
+  ipcMain.handle('print:receipt', async (_event, { html, silent, deviceName }) => {
+    return printHtml(html, { silent: silent ?? false, deviceName });
+  });
 
-      const encodedHtml = encodeURIComponent(html);
-      printWindow.loadURL(`data:text/html;charset=utf-8,${encodedHtml}`);
-
-      printWindow.webContents.once('did-finish-load', () => {
-        printWindow.webContents.print(
-          {
-            silent: silent ?? false,
-            printBackground: true,
-            margins: { marginType: 'none' },
-          },
-          (success, failureReason) => {
-            printWindow.destroy();
-            if (success) {
-              resolve({ success: true });
-            } else {
-              // eslint-disable-next-line no-console
-              console.error('Print failed:', failureReason);
-              resolve({ success: false, reason: failureReason });
-            }
-          },
-        );
-      });
-
-      printWindow.webContents.once('did-fail-load', () => {
-        printWindow.destroy();
-        reject(new Error('Failed to load print content'));
-      });
-    });
+  ipcMain.handle('print:get-printers', async () => {
+    return listPrinters();
   });
 }
 

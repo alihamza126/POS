@@ -35,6 +35,8 @@ interface ClinicInfo {
   showBatchOnReceipt?: boolean;
   showExpiryOnReceipt?: boolean;
   showCompositionOnReceipt?: boolean;
+  /** OS printer device name selected in Settings → Printing. Empty = OS default. */
+  printerName?: string;
 }
 
 interface ReceiptData {
@@ -247,20 +249,23 @@ export default function MedicalReceiptPrinter({
 }: MedicalReceiptTemplateProps) {
   const [printing, setPrinting] = React.useState(false);
   const [printed, setPrinted] = React.useState(false);
+  const [printError, setPrintError] = React.useState<string | null>(null);
 
   const handlePrint = async () => {
     setPrinting(true);
+    setPrintError(null);
     try {
       const html = generateReceiptHtml(receipt);
       // @ts-ignore — window.api injected by preload
-      const result = await window.api.print.printReceipt(html, false);
+      const result = await window.api.print.printReceipt(html, false, receipt.clinicInfo.printerName);
       if (result?.success) {
         setPrinted(true);
         setTimeout(() => onPrint?.(), 1500);
+      } else {
+        setPrintError(result?.reason || 'Printing failed. Please check your printer.');
       }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Print failed:', err);
+    } catch (err: any) {
+      setPrintError(err?.message || 'Printing failed. Please check your printer.');
     } finally {
       setPrinting(false);
     }
@@ -268,15 +273,19 @@ export default function MedicalReceiptPrinter({
 
   const handleSilentPrint = async () => {
     setPrinting(true);
+    setPrintError(null);
     try {
       const html = generateReceiptHtml(receipt);
       // @ts-ignore
-      await window.api.print.printReceipt(html, true);
-      setPrinted(true);
-      setTimeout(() => onPrint?.(), 800);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Silent print failed:', err);
+      const result = await window.api.print.printReceipt(html, true, receipt.clinicInfo.printerName);
+      if (result?.success) {
+        setPrinted(true);
+        setTimeout(() => onPrint?.(), 800);
+      } else {
+        setPrintError(result?.reason || 'Printing failed. Please check your printer in Settings → Printing.');
+      }
+    } catch (err: any) {
+      setPrintError(err?.message || 'Printing failed. Please check your printer in Settings → Printing.');
     } finally {
       setPrinting(false);
     }
@@ -324,8 +333,16 @@ export default function MedicalReceiptPrinter({
         <Printer size={14} className="text-blue-500 shrink-0" />
         <span className="text-xs font-bold text-blue-700">
           BC-96AC &bull; 79.5 mm roll &bull; 80 mm thermal
+          {receipt.clinicInfo.printerName ? ` → ${receipt.clinicInfo.printerName}` : ' → OS default printer'}
         </span>
       </div>
+
+      {/* Print error */}
+      {printError && (
+        <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-bold text-red-600">
+          {printError}
+        </div>
+      )}
 
       {/* Print buttons */}
       <div className="flex gap-2">

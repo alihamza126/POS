@@ -5,11 +5,13 @@ import {
   patientRecords,
   prescriptions,
   clinicSettings,
+  diseaseFormulas,
 } from '../../../database/schema/medical';
 import { products } from '../../../database/schema/inventory';
-import { eq, and, lt, lte, gte, desc, asc, ne, isNull } from 'drizzle-orm';
+import { eq, and, lt, lte, gte, desc, asc, ne, isNull, like, or } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { syncService } from '../../../sync/services/sync-service';
 
 // ---------------------------------------------------------------------------
 // Product Batch Repository
@@ -41,7 +43,8 @@ export class ProductBatchRepository {
     branchId: string;
   }) {
     const id = uuidv4();
-    await db.insert(productBatches).values({ id, ...data });
+    const result = await db.insert(productBatches).values({ id, ...data }).returning().get();
+    syncService.addToQueue('product_batches', id, 'create', result).catch(console.error);
     return id;
   }
 
@@ -53,14 +56,17 @@ export class ProductBatchRepository {
     if (!batch) throw new Error(`Batch ${batchId} not found`);
 
     const newQty = batch.quantity + quantityDelta;
-    await db
+    const result = await db
       .update(productBatches)
       .set({
         quantity: newQty,
         isActive: newQty > 0,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(productBatches.id, batchId));
+      .where(eq(productBatches.id, batchId))
+      .returning()
+      .get();
+    syncService.addToQueue('product_batches', batchId, 'update', result).catch(console.error);
   }
 
   static async getExpiringBatches(branchId: string, thresholdDays: number = 90) {
@@ -90,6 +96,14 @@ export class ProductBatchRepository {
 
 // ---------------------------------------------------------------------------
 // Expiry Alert Repository
+//
+// Deliberately NOT pushed to the sync queue: refreshAlertsForBranch() wipes
+// and fully regenerates every active alert for a branch on each call, so
+// alerts are a derived/local view over products + product_batches, not a
+// primary record. Any device with the underlying product/batch data (which
+// IS synced) can regenerate its own alerts locally — syncing every
+// create/dismiss here would just flood the queue with high-churn data that
+// gets thrown away on the next refresh anyway.
 // ---------------------------------------------------------------------------
 export class ExpiryAlertRepository {
   static async getActiveAlerts(branchId: string) {
@@ -254,14 +268,22 @@ export class PatientRecordRepository {
   static async upsert(customerId: string, data: Partial<typeof patientRecords.$inferInsert>) {
     const existing = await PatientRecordRepository.getByCustomerId(customerId);
     if (existing) {
-      await db
+      const result = await db
         .update(patientRecords)
         .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(patientRecords.customerId, customerId));
+        .where(eq(patientRecords.customerId, customerId))
+        .returning()
+        .get();
+      syncService.addToQueue('patient_records', existing.id, 'update', result).catch(console.error);
       return existing.id;
     } else {
       const id = uuidv4();
-      await db.insert(patientRecords).values({ id, customerId, ...data });
+      const result = await db
+        .insert(patientRecords)
+        .values({ id, customerId, ...data })
+        .returning()
+        .get();
+      syncService.addToQueue('patient_records', id, 'create', result).catch(console.error);
       return id;
     }
   }
@@ -285,7 +307,8 @@ export class PrescriptionRepository {
     userId: string;
   }) {
     const id = uuidv4();
-    await db.insert(prescriptions).values({ id, ...data });
+    const result = await db.insert(prescriptions).values({ id, ...data }).returning().get();
+    syncService.addToQueue('prescriptions', id, 'create', result).catch(console.error);
     return id;
   }
 
@@ -298,10 +321,13 @@ export class PrescriptionRepository {
   }
 
   static async linkToInvoice(prescriptionId: string, invoiceId: string) {
-    await db
+    const result = await db
       .update(prescriptions)
       .set({ invoiceId, status: 'dispensed', updatedAt: new Date().toISOString() })
-      .where(eq(prescriptions.id, prescriptionId));
+      .where(eq(prescriptions.id, prescriptionId))
+      .returning()
+      .get();
+    syncService.addToQueue('prescriptions', prescriptionId, 'update', result).catch(console.error);
   }
 
   static async getById(id: string) {
@@ -333,12 +359,21 @@ export class ClinicSettingsRepository {
   static async set(key: string, value: string) {
     const existing = await ClinicSettingsRepository.get(key);
     if (existing !== null) {
-      await db
+      const result = await db
         .update(clinicSettings)
         .set({ value, updatedAt: new Date().toISOString() })
-        .where(eq(clinicSettings.key, key));
+        .where(eq(clinicSettings.key, key))
+        .returning()
+        .get();
+      syncService.addToQueue('clinic_settings', result.id, 'update', result).catch(console.error);
     } else {
-      await db.insert(clinicSettings).values({ id: uuidv4(), key, value });
+      const id = uuidv4();
+      const result = await db
+        .insert(clinicSettings)
+        .values({ id, key, value })
+        .returning()
+        .get();
+      syncService.addToQueue('clinic_settings', id, 'create', result).catch(console.error);
     }
   }
 
@@ -346,5 +381,115 @@ export class ClinicSettingsRepository {
     for (const [key, value] of Object.entries(settings)) {
       await ClinicSettingsRepository.set(key, value);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Disease Formula Repository — Disease → Remedy library for prescribing
+// ---------------------------------------------------------------------------
+export interface RemedyEntry {
+  name: string;
+  potency?: string; // e.g. "30C", "200C", "1M"
+  dosage?: string; // e.g. "5 drops" / "4 pills"
+  frequency?: string; // e.g. "3 times a day"
+  duration?: string; // e.g. "7 days"
+  notes?: string;
+}
+
+export class DiseaseFormulaRepository {
+  static async list(
+    branchId: string,
+    filters: { query?: string; activeOnly?: boolean } = {},
+  ) {
+    const { query, activeOnly = true } = filters;
+    let conditions = eq(diseaseFormulas.branchId, branchId);
+
+    if (activeOnly) {
+      conditions = and(conditions, eq(diseaseFormulas.isActive, true))!;
+    }
+
+    if (query) {
+      conditions = and(
+        conditions,
+        or(
+          like(diseaseFormulas.diseaseName, `%${query}%`),
+          like(diseaseFormulas.category, `%${query}%`),
+        ),
+      )!;
+    }
+
+    return db
+      .select()
+      .from(diseaseFormulas)
+      .where(conditions)
+      .orderBy(asc(diseaseFormulas.diseaseName));
+  }
+
+  static async getById(id: string) {
+    const rows = await db
+      .select()
+      .from(diseaseFormulas)
+      .where(eq(diseaseFormulas.id, id));
+    return rows[0] || null;
+  }
+
+  static async create(data: {
+    diseaseName: string;
+    category?: string;
+    remedies: RemedyEntry[];
+    notes?: string;
+    branchId: string;
+    userId: string;
+  }) {
+    const id = uuidv4();
+    const result = await db
+      .insert(diseaseFormulas)
+      .values({
+        id,
+        diseaseName: data.diseaseName,
+        category: data.category,
+        remedies: JSON.stringify(data.remedies ?? []),
+        notes: data.notes,
+        branchId: data.branchId,
+        userId: data.userId,
+      })
+      .returning()
+      .get();
+    syncService.addToQueue('disease_formulas', id, 'create', result).catch(console.error);
+    return id;
+  }
+
+  static async update(
+    id: string,
+    data: Partial<{
+      diseaseName: string;
+      category: string;
+      remedies: RemedyEntry[];
+      notes: string;
+      isActive: boolean;
+    }>,
+  ) {
+    const { remedies, ...rest } = data;
+    const result = await db
+      .update(diseaseFormulas)
+      .set({
+        ...rest,
+        ...(remedies ? { remedies: JSON.stringify(remedies) } : {}),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(diseaseFormulas.id, id))
+      .returning()
+      .get();
+    syncService.addToQueue('disease_formulas', id, 'update', result).catch(console.error);
+  }
+
+  static async setActive(id: string, isActive: boolean) {
+    const result = await db
+      .update(diseaseFormulas)
+      .set({ isActive, updatedAt: new Date().toISOString() })
+      .where(eq(diseaseFormulas.id, id))
+      .returning()
+      .get();
+    syncService.addToQueue('disease_formulas', id, 'update', result).catch(console.error);
   }
 }

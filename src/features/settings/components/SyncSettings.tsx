@@ -1,23 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Cloud, 
-  RefreshCw, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Cloud,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   Database,
   History,
   Activity,
-  ArrowRight
+  ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { useToast } from '../../../hooks/use-toast';
 import { format } from 'date-fns';
 
 export default function SyncSettings() {
+  const { toast } = useToast();
   const [status, setStatus] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [failedItems, setFailedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [retryingAll, setRetryingAll] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
 
   const fetchStatus = async () => {
@@ -32,12 +38,26 @@ export default function SyncSettings() {
     setHistory(h);
   };
 
+  const fetchFailedItems = useCallback(async () => {
+    try {
+      // @ts-ignore
+      const items = await window.api.sync.getFailedItems();
+      setFailedItems(items || []);
+    } catch {
+      // non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchStatus();
     fetchHistory();
-    const interval = setInterval(fetchStatus, 5000);
+    fetchFailedItems();
+    const interval = setInterval(() => {
+      fetchStatus();
+      fetchFailedItems();
+    }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchFailedItems]);
 
   const handleManualSync = async () => {
     setLoading(true);
@@ -46,16 +66,64 @@ export default function SyncSettings() {
       await window.api.sync.triggerSync();
       await fetchStatus();
       await fetchHistory();
+      await fetchFailedItems();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetryItem = async (id: string) => {
+    setRetryingId(id);
+    try {
+      // @ts-ignore
+      await window.api.sync.retryItem(id);
+      await fetchStatus();
+      await fetchFailedItems();
+      toast({ title: 'Retried', description: 'The item was queued again — check status above.' });
+    } catch (err: any) {
+      toast({
+        title: 'Retry Failed',
+        description: err?.message || 'Could not retry this item.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleRetryAllFailed = async () => {
+    setRetryingAll(true);
+    try {
+      // @ts-ignore
+      await window.api.sync.retryAllFailed();
+      await fetchStatus();
+      await fetchFailedItems();
+      toast({ title: 'Retrying All', description: 'All failed items were queued again.' });
+    } catch (err: any) {
+      toast({
+        title: 'Retry Failed',
+        description: err?.message || 'Could not retry the failed items.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRetryingAll(false);
     }
   };
 
   const toggleAutoSync = async () => {
     const newVal = !autoSync;
     setAutoSync(newVal);
-    // @ts-ignore
-    await window.api.sync.setAuto(newVal);
+    try {
+      // @ts-ignore
+      await window.api.sync.setAuto(newVal);
+    } catch (err: any) {
+      setAutoSync(!newVal); // revert the optimistic UI change
+      toast({
+        title: 'Could Not Change Auto-Sync',
+        description: err?.message || 'You may not have permission to change this setting.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -162,6 +230,63 @@ export default function SyncSettings() {
           <div className="flex justify-between mt-3 text-xs text-navy/60 font-medium">
             <span>Processing local queue...</span>
             <span>{status.syncedCount} of {status.pendingCount + status.syncedCount} completed</span>
+          </div>
+        </div>
+      )}
+
+      {/* Failed Items — per-record detail + retry, not just a count */}
+      {failedItems.length > 0 && (
+        <div className="bg-surface rounded-3xl border border-rose-200 shadow-soft overflow-hidden">
+          <div className="p-6 border-b border-rose-100 flex items-center justify-between bg-rose-50/50">
+            <div className="flex items-center gap-3">
+              <XCircle className="text-rose-500" size={20} />
+              <div>
+                <h3 className="font-bold text-navy text-lg">Failed Items ({failedItems.length})</h3>
+                <p className="text-xs text-navy/50">These records could not reach the cloud — see why below.</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleRetryAllFailed}
+              disabled={retryingAll}
+              className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+            >
+              <RotateCcw size={16} className={`mr-2 ${retryingAll ? 'animate-spin' : ''}`} />
+              Retry All
+            </Button>
+          </div>
+          <div className="divide-y divide-navy/5">
+            {failedItems.map((item) => (
+              <div key={item.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-navy/40">
+                      {item.entity}
+                    </span>
+                    <span className="text-xs text-navy/30">·</span>
+                    <span className="text-xs font-bold text-navy/50">{item.action}</span>
+                    <span className="text-xs text-navy/30">·</span>
+                    <span className="text-xs text-navy/40">{item.retryCount} attempts</span>
+                  </div>
+                  <p className="text-sm text-rose-600 font-medium mt-1 truncate">
+                    {item.syncMessage || 'Unknown error'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleRetryItem(item.id)}
+                  disabled={retryingId === item.id}
+                  className="shrink-0 rounded-xl"
+                >
+                  {retryingId === item.id ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    'Retry'
+                  )}
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )}

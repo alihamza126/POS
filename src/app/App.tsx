@@ -17,12 +17,35 @@ import POSPage from '../features/sales/pages/POSPage';
 import SalesHistoryPage from '../features/sales/pages/SalesHistoryPage';
 import CategoryListPage from '../features/categories/pages/CategoryListPage';
 import SettingsPage from '../features/settings/pages/SettingsPage';
+import FormulaListPage from '../features/formulas/pages/FormulaListPage';
 
 import { Toaster } from '../components/ui/toaster';
 import GlobalCloseDialog from '../components/shared/GlobalCloseDialog';
 import DashboardPage from '../features/dashboard/pages/DashboardPage';
+import { useAuthStore } from '../stores/auth-store';
 
 export default function App() {
+  // The renderer's auth state is persisted to localStorage and survives an
+  // app restart, but the main process's session (which every permission
+  // check trusts) is intentionally in-memory only and resets on restart.
+  // Reconcile the two on boot so a stale "still logged in" renderer never
+  // sits in front of IPC calls that will all fail with "not logged in".
+  React.useEffect(() => {
+    const syncSession = async () => {
+      try {
+        // @ts-ignore
+        const session = await window.api.auth.getSession();
+        if (!session && useAuthStore.getState().isAuthenticated) {
+          useAuthStore.getState().logout();
+        }
+      } catch {
+        // If the check itself fails, err on the side of requiring login.
+        useAuthStore.getState().logout();
+      }
+    };
+    syncSession();
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -50,6 +73,7 @@ export default function App() {
                   />
                   <Route path="/sales" element={<SalesHistoryPage />} />
                   <Route path="/categories" element={<CategoryListPage />} />
+                  <Route path="/formulas" element={<FormulaListPage />} />
                   <Route path="/audit" element={<AuditLogPage />} />
                   <Route path="/customers" element={<CustomerListPage />} />
                   <Route

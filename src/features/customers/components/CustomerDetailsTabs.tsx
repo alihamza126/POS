@@ -13,9 +13,11 @@ import {
   StickyNote,
   Activity,
   Stethoscope,
+  ClipboardList,
 } from 'lucide-react';
 import CustomerLedgerTab from './CustomerLedgerTab';
 import PatientProfileTab from './PatientProfileTab';
+import PrescriptionsTab from './PrescriptionsTab';
 import { generateCustomerStatementPDF } from '../../../shared/utils/pdf-generator';
 import { exportToCSV } from '../../../shared/utils/csv-exporter';
 import { useSettingsStore } from '../../../stores/settings-store';
@@ -169,6 +171,13 @@ export default function CustomerDetailsTabs({
             Medical
           </TabsTrigger>
           <TabsTrigger
+            value="prescriptions"
+            className="rounded-xl px-6 py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-bold flex items-center gap-2"
+          >
+            <ClipboardList size={16} />
+            Prescriptions
+          </TabsTrigger>
+          <TabsTrigger
             value="activity"
             className="rounded-xl px-6 py-2.5 data-[state=active]:bg-navy data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-bold flex items-center gap-2"
           >
@@ -301,6 +310,13 @@ export default function CustomerDetailsTabs({
         className="animate-in fade-in slide-in-from-bottom-4"
       >
         <PatientProfileTab customerId={customerId} />
+      </TabsContent>
+
+      <TabsContent
+        value="prescriptions"
+        className="animate-in fade-in slide-in-from-bottom-4"
+      >
+        <PrescriptionsTab customerId={customerId} />
       </TabsContent>
 
       <TabsContent

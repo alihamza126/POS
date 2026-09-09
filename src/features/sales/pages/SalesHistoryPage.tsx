@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Search, FileText, XCircle, Eye, Ban } from 'lucide-react';
 import { APP_CONFIG } from '../../../shared/constants/config';
+import { useToast } from '../../../hooks/use-toast';
+import { useAuthStore } from '../../../stores/auth-store';
 
 export default function SalesHistoryPage() {
+  const { toast } = useToast();
+  const { user } = useAuthStore();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -53,12 +57,21 @@ export default function SalesHistoryPage() {
   const cancelInvoice = async (id: string) => {
     try {
       // @ts-ignore
-      await window.api.sales.cancel(id, 'system', APP_CONFIG.branch.defaultId, APP_CONFIG.branch.defaultDeviceId);
+      await window.api.sales.cancel(
+        id,
+        user?.id || 'system',
+        APP_CONFIG.branch.defaultId,
+        APP_CONFIG.branch.defaultDeviceId,
+      );
       fetchInvoices();
       setSelectedInvoice(null);
+      toast({ title: 'Sale Cancelled', description: 'The invoice has been cancelled and stock restored.' });
     } catch (error: any) {
-      // eslint-disable-next-line no-console
-      console.error('Cancel failed:', error);
+      toast({
+        title: 'Cancel Failed',
+        description: error?.message || 'Could not cancel this sale.',
+        variant: 'destructive',
+      });
     }
   };
 

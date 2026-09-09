@@ -22,6 +22,9 @@ const syncHandler = {
   triggerSync: () => ipcRenderer.invoke('sync:trigger'),
   pullFromCloud: () => ipcRenderer.invoke('sync:pull'),
   setAuto: (enabled: boolean) => ipcRenderer.invoke('sync:set-auto', enabled),
+  getFailedItems: () => ipcRenderer.invoke('sync:get-failed-items'),
+  retryItem: (id: string) => ipcRenderer.invoke('sync:retry-item', id),
+  retryAllFailed: () => ipcRenderer.invoke('sync:retry-all-failed'),
 };
 
 const productHandler = {
@@ -129,12 +132,15 @@ const windowHandler = {
   onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
     const subscription = (_event: any, value: boolean) => callback(value);
     ipcRenderer.on('window:fullscreen-change', subscription);
-    return () =>
+    return () => {
       ipcRenderer.removeListener('window:fullscreen-change', subscription);
+    };
   },
   onCloseRequest: (callback: () => void) => {
     ipcRenderer.on('app:close-request', () => callback());
-    return () => ipcRenderer.removeAllListeners('app:close-request');
+    return () => {
+      ipcRenderer.removeAllListeners('app:close-request');
+    };
   },
   confirmClose: () => ipcRenderer.send('app:confirm-close'),
 };
@@ -169,12 +175,23 @@ const medicalHandler = {
   getClinicSettings: () => ipcRenderer.invoke('medical:get-clinic-settings'),
   saveClinicSettings: (settings: Record<string, string>, userId: string, branchId: string) =>
     ipcRenderer.invoke('medical:save-clinic-settings', { settings, userId, branchId }),
+  // Disease Formulas (Disease → Remedy library)
+  listDiseaseFormulas: (branchId: string, query?: string, activeOnly?: boolean) =>
+    ipcRenderer.invoke('medical:list-disease-formulas', { branchId, query, activeOnly }),
+  getDiseaseFormula: (id: string) => ipcRenderer.invoke('medical:get-disease-formula', id),
+  createDiseaseFormula: (data: any, userId: string) =>
+    ipcRenderer.invoke('medical:create-disease-formula', { data, userId }),
+  updateDiseaseFormula: (id: string, data: any, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:update-disease-formula', { id, data, userId, branchId }),
+  setDiseaseFormulaActive: (id: string, isActive: boolean, userId: string, branchId: string) =>
+    ipcRenderer.invoke('medical:set-disease-formula-active', { id, isActive, userId, branchId }),
 };
 
 // Print Handler
 const printHandler = {
-  printReceipt: (html: string, silent?: boolean) =>
-    ipcRenderer.invoke('print:receipt', { html, silent: silent ?? false }),
+  printReceipt: (html: string, silent?: boolean, deviceName?: string) =>
+    ipcRenderer.invoke('print:receipt', { html, silent: silent ?? false, deviceName }),
+  getPrinters: () => ipcRenderer.invoke('print:get-printers'),
 };
 
 contextBridge.exposeInMainWorld('api', {

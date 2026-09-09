@@ -10,6 +10,7 @@ import {
   FileText,
   FolderOpen,
   Building,
+  FlaskConical,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../shared/utils';
@@ -21,6 +22,7 @@ const navItems = [
   { icon: FileText, label: 'Sales History', path: '/sales' },
   { icon: Package, label: 'Inventory', path: '/inventory' },
   { icon: FolderOpen, label: 'Categories', path: '/categories' },
+  { icon: FlaskConical, label: 'Formulas', path: '/formulas' },
   { icon: Users, label: 'Customers', path: '/customers' },
   { icon: Building, label: 'Suppliers', path: '/suppliers' },
   { icon: History, label: 'Audit Log', path: '/audit' },
@@ -30,6 +32,15 @@ const navItems = [
 export default function Sidebar() {
   const { logout } = useAuthStore();
   const location = useLocation();
+
+  const handleLogout = () => {
+    // Clear the main-process session first (it's the one permission checks
+    // trust) — the renderer's own store is just local UI state and would
+    // otherwise leave the main process still "logged in" until app restart.
+    // @ts-ignore
+    window.api.auth.logout().catch(() => {});
+    logout();
+  };
 
   return (
     <aside className="w-64 bg-secondary flex flex-col h-full border-r border-navy/20 shadow-soft">
@@ -61,7 +72,7 @@ export default function Sidebar() {
       <div className="p-4 border-t border-secondary-foreground/10">
         <button
           type="button"
-          onClick={logout}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full rounded-md text-destructive hover:bg-destructive/10 transition-all"
         >
           <LogOut size={20} />

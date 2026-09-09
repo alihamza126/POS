@@ -12,6 +12,7 @@ import SyncSettings from '../components/SyncSettings';
 import CompanySettings from '../components/CompanySettings';
 import UserManagement from '../components/UserManagement';
 import ClinicSettings from '../components/ClinicSettings';
+import PrintingSettings from '../components/PrintingSettings';
 
 export default function SettingsPage() {
   return (
@@ -85,15 +86,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="printing" className="mt-0">
-          <div className="bg-surface p-12 rounded-[40px] border border-navy/10 shadow-soft text-center space-y-4">
-            <div className="w-20 h-20 bg-navy/5 rounded-3xl flex items-center justify-center text-navy/20 mx-auto">
-              <Printer size={40} />
-            </div>
-            <h2 className="text-2xl font-bold text-navy">Print Configuration</h2>
-            <p className="text-navy/50 max-w-md mx-auto">
-              Configure clinic receipt settings under the <strong>Clinic</strong> tab above.
-            </p>
-          </div>
+          <PrintingSettings />
         </TabsContent>
       </Tabs>
     </div>

@@ -14,6 +14,7 @@ import { generateInvoicePDF } from '../../../shared/utils/pdf-generator';
 import { useSettingsStore } from '../../../stores/settings-store';
 import { audioService } from '../../../shared/utils/audio';
 import { APP_CONFIG } from '../../../shared/constants/config';
+import { useToast } from '../../../hooks/use-toast';
 import MedicalReceiptPrinter, {
   generateReceiptHtml,
   type ReceiptData,
@@ -32,6 +33,7 @@ export default function PaymentDialog({
 }: PaymentDialogProps) {
   const { user } = useAuthStore();
   const { company } = useSettingsStore();
+  const { toast } = useToast();
   const {
     items,
     customerId,
@@ -145,19 +147,35 @@ export default function PaymentDialog({
       showBatchOnReceipt: clinicInfo?.showBatchOnReceipt ?? true,
       showExpiryOnReceipt: clinicInfo?.showExpiryOnReceipt ?? true,
       showCompositionOnReceipt: clinicInfo?.showCompositionOnReceipt ?? true,
+      printerName: clinicInfo?.printerName || undefined,
     },
   });
 
-  /** Silently print the slip (no dialog — direct to default printer) */
+  /** Silently print the slip (no dialog — direct to the configured printer) */
   const handleSilentPrint = async () => {
     setSilentPrinting(true);
     try {
-      const html = generateReceiptHtml(buildReceiptData());
+      const receiptData = buildReceiptData();
+      const html = generateReceiptHtml(receiptData);
       // @ts-ignore
-      await window.api.print.printReceipt(html, true);
-      setReceiptPrinted(true);
-    } catch (err) {
-      console.error('Silent print failed:', err);
+      const result = await window.api.print.printReceipt(html, true, receiptData.clinicInfo.printerName);
+      if (result?.success) {
+        setReceiptPrinted(true);
+      } else {
+        toast({
+          title: 'Print Failed',
+          description:
+            result?.reason ||
+            'Could not send the slip to the printer. Check the printer in Settings → Printing.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Print Failed',
+        description: err?.message || 'Could not send the slip to the printer.',
+        variant: 'destructive',
+      });
     } finally {
       setSilentPrinting(false);
     }

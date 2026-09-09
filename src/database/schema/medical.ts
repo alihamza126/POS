@@ -119,3 +119,24 @@ export const clinicSettings = sqliteTable('clinic_settings', {
   value: text('value').notNull(),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
+
+// -----------------------------------------------------------------------------
+// Disease Formulas — reusable Disease → Remedy library for homeopathic
+// prescribing. The doctor maintains a library of standard formulas here;
+// when writing a prescription, picking a disease pre-fills its remedies,
+// which can then be adjusted per-patient before saving the prescription.
+// -----------------------------------------------------------------------------
+export const diseaseFormulas = sqliteTable('disease_formulas', {
+  id: text('id').primaryKey(),
+  diseaseName: text('disease_name').notNull(),  // e.g. "Fever", "Common Cold"
+  category: text('category'),                    // Optional grouping, e.g. "Respiratory"
+  // Remedies in the formula (JSON array of
+  // {name, potency, dosage, frequency, duration, notes})
+  remedies: text('remedies').notNull().default('[]'),
+  notes: text('notes'),                           // General instructions for this formula
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  branchId: text('branch_id').notNull(),
+  userId: text('user_id').notNull(),              // Doctor/user who authored it
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+});

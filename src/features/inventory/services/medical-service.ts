@@ -12,6 +12,8 @@ import {
   PrescriptionRepository,
   ProductBatchRepository,
   ClinicSettingsRepository,
+  DiseaseFormulaRepository,
+  RemedyEntry,
 } from '../repositories/medical-repository';
 import { AuditService } from '../../audit/services/audit-service';
 
@@ -162,6 +164,7 @@ export class MedicalService {
       receiptFooter: settings.receiptFooter ?? 'Thank you for visiting us. Get well soon!',
       expiryAlertDays: parseInt(settings.expiryAlertDays ?? '90', 10),
       paperSize: settings.paperSize ?? '80mm', // 58mm, 80mm, A4
+      printerName: settings.printerName ?? '', // OS printer device name — empty = use OS default
       currency: settings.currency ?? 'Rs.',
       showBatchOnReceipt: settings.showBatchOnReceipt === 'true',
       showExpiryOnReceipt: settings.showExpiryOnReceipt === 'true',
@@ -186,6 +189,92 @@ export class MedicalService {
       oldValue: oldSettings,
       newValue: settings,
       metadata: {},
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Disease Formulas — Disease → Remedy library for prescribing
+  // ---------------------------------------------------------------------------
+  static async listDiseaseFormulas(
+    branchId: string,
+    filters?: { query?: string; activeOnly?: boolean },
+  ) {
+    const rows = await DiseaseFormulaRepository.list(branchId, filters ?? {});
+    return rows.map((row) => ({
+      ...row,
+      remedies: JSON.parse(row.remedies) as RemedyEntry[],
+    }));
+  }
+
+  static async getDiseaseFormula(id: string) {
+    const row = await DiseaseFormulaRepository.getById(id);
+    if (!row) return null;
+    return { ...row, remedies: JSON.parse(row.remedies) as RemedyEntry[] };
+  }
+
+  static async createDiseaseFormula(
+    data: {
+      diseaseName: string;
+      category?: string;
+      remedies: RemedyEntry[];
+      notes?: string;
+      branchId: string;
+    },
+    userId: string,
+  ) {
+    const id = await DiseaseFormulaRepository.create({ ...data, userId });
+    await AuditService.log({
+      action: 'DISEASE_FORMULA_CREATED',
+      entity: 'disease_formulas',
+      entityId: id,
+      userId,
+      deviceId: 'local',
+      branchId: data.branchId,
+      newValue: { diseaseName: data.diseaseName, remedyCount: data.remedies.length },
+    });
+    return id;
+  }
+
+  static async updateDiseaseFormula(
+    id: string,
+    data: Partial<{
+      diseaseName: string;
+      category: string;
+      remedies: RemedyEntry[];
+      notes: string;
+    }>,
+    userId: string,
+    branchId: string,
+  ) {
+    const oldFormula = await DiseaseFormulaRepository.getById(id);
+    await DiseaseFormulaRepository.update(id, data);
+    await AuditService.log({
+      action: 'DISEASE_FORMULA_UPDATED',
+      entity: 'disease_formulas',
+      entityId: id,
+      userId,
+      deviceId: 'local',
+      branchId,
+      oldValue: oldFormula ? { diseaseName: oldFormula.diseaseName } : undefined,
+      newValue: data,
+    });
+  }
+
+  static async setDiseaseFormulaActive(
+    id: string,
+    isActive: boolean,
+    userId: string,
+    branchId: string,
+  ) {
+    await DiseaseFormulaRepository.setActive(id, isActive);
+    await AuditService.log({
+      action: isActive ? 'DISEASE_FORMULA_REACTIVATED' : 'DISEASE_FORMULA_DEACTIVATED',
+      entity: 'disease_formulas',
+      entityId: id,
+      userId,
+      deviceId: 'local',
+      branchId,
+      metadata: { isActive },
     });
   }
 }

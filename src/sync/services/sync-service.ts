@@ -6,7 +6,14 @@ import { customers, customerPayments } from '../../database/schema/customers';
 import { products, stockMovements } from '../../database/schema/inventory';
 import { invoices, invoiceItems } from '../../database/schema/sales';
 import { users, roles } from '../../database/schema/auth';
-import { eq, and, asc, or, lt, sql } from 'drizzle-orm';
+import {
+  productBatches,
+  patientRecords,
+  prescriptions,
+  clinicSettings,
+  diseaseFormulas,
+} from '../../database/schema/medical';
+import { eq, and, asc, desc, or, lt, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { supabase } from '../../shared/utils/supabase';
 
@@ -61,8 +68,17 @@ function convertKeysToCamelCase(obj: any): any {
   return obj;
 }
 
+// bootstrapQueue() full-table-scans every synced table to catch records that
+// predate sync tracking. Running that on every 60s tick forever doesn't
+// scale once tables have thousands of rows, and it's pointless after the
+// first pass anyway — nothing creates records outside a repository (which
+// always queues them), so anything bootstrapQueue would find is already
+// found on the previous run. Throttle it instead of running it every tick.
+const BOOTSTRAP_THROTTLE_MS = 15 * 60 * 1000; // 15 minutes
+
 export class SyncService {
   private isSyncing = false;
+  private lastBootstrapAt = 0;
 
   async getSyncStatus(): Promise<SyncStatus> {
     return this.getStatus();
@@ -73,6 +89,35 @@ export class SyncService {
       .select()
       .from(syncLogs)
       .orderBy(asc(syncLogs.startTime));
+  }
+
+  /**
+   * Failed queue items with enough detail to actually diagnose them —
+   * previously the UI only showed a count, with no way to see which record
+   * failed, why, or to retry just that one.
+   */
+  async getFailedItems() {
+    return db
+      .select()
+      .from(syncQueue)
+      .where(eq(syncQueue.status, 'failed'))
+      .orderBy(desc(syncQueue.updatedAt));
+  }
+
+  /** Reset one failed item back to pending so the next sync tick retries it. */
+  async retryItem(id: string) {
+    await db
+      .update(syncQueue)
+      .set({ status: 'pending', updatedAt: new Date() })
+      .where(eq(syncQueue.id, id));
+  }
+
+  /** Reset every failed item back to pending in one go. */
+  async retryAllFailed() {
+    await db
+      .update(syncQueue)
+      .set({ status: 'pending', updatedAt: new Date() })
+      .where(eq(syncQueue.status, 'failed'));
   }
 
   async pullFromCloud() {
@@ -92,6 +137,11 @@ export class SyncService {
       { supabaseTable: 'supplier_payments', localSchema: supplierPayments, name: 'supplier_payments' },
       { supabaseTable: 'purchase_invoices', localSchema: purchaseInvoices, name: 'purchase_invoices' },
       { supabaseTable: 'purchase_invoice_items', localSchema: purchaseInvoiceItems, name: 'purchase_invoice_items' },
+      { supabaseTable: 'product_batches', localSchema: productBatches, name: 'product_batches' },
+      { supabaseTable: 'patient_records', localSchema: patientRecords, name: 'patient_records' },
+      { supabaseTable: 'prescriptions', localSchema: prescriptions, name: 'prescriptions' },
+      { supabaseTable: 'clinic_settings', localSchema: clinicSettings, name: 'clinic_settings' },
+      { supabaseTable: 'disease_formulas', localSchema: diseaseFormulas, name: 'disease_formulas' },
     ];
 
     let totalPulled = 0;
@@ -191,6 +241,11 @@ export class SyncService {
       { name: 'invoice_items', schema: invoiceItems },
       { name: 'customer_payments', schema: customerPayments },
       { name: 'supplier_payments', schema: supplierPayments },
+      { name: 'product_batches', schema: productBatches },
+      { name: 'patient_records', schema: patientRecords },
+      { name: 'prescriptions', schema: prescriptions },
+      { name: 'clinic_settings', schema: clinicSettings },
+      { name: 'disease_formulas', schema: diseaseFormulas },
     ];
 
     for (const table of tablesToCheck) {
@@ -249,8 +304,9 @@ export class SyncService {
       if (isEmpty) {
         console.log('[SyncService] Local database is empty. Triggering automatic initial pull from cloud...');
         await this.pullFromCloud();
-      } else {
+      } else if (Date.now() - this.lastBootstrapAt > BOOTSTRAP_THROTTLE_MS) {
         await this.bootstrapQueue();
+        this.lastBootstrapAt = Date.now();
       }
     } catch (bootstrapErr) {
       console.error('[SyncService] Bootstrap/Pull failed:', bootstrapErr);
@@ -280,13 +336,18 @@ export class SyncService {
         .orderBy(
           sql`CASE ${syncQueue.entity}
             WHEN 'categories' THEN 1
+            WHEN 'clinic_settings' THEN 1
+            WHEN 'disease_formulas' THEN 1
             WHEN 'customers' THEN 2
             WHEN 'suppliers' THEN 2
+            WHEN 'patient_records' THEN 2
             WHEN 'products' THEN 3
             WHEN 'invoices' THEN 4
             WHEN 'purchase_invoices' THEN 4
             WHEN 'invoice_items' THEN 5
             WHEN 'purchase_invoice_items' THEN 5
+            WHEN 'product_batches' THEN 5
+            WHEN 'prescriptions' THEN 5
             WHEN 'stock_movements' THEN 6
             WHEN 'customer_payments' THEN 7
             WHEN 'supplier_payments' THEN 7
